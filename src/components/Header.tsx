@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Grade, SchoolInfo } from "../types";
-import { DEFAULT_TEACHERS, calculateWeekDateRange } from "../data/defaultTimetables";
+import { DEFAULT_TEACHERS, TeacherInfo, calculateWeekDateRange } from "../data/defaultTimetables";
 import { 
   Settings, 
   FileDown, 
@@ -35,6 +35,7 @@ interface HeaderProps {
   activeTab: "timetable" | "schedule" | "lessonPlan" | "syncHub" | "integration";
   setActiveTab: (tab: "timetable" | "schedule" | "lessonPlan" | "syncHub" | "integration") => void;
   availableClasses: string[];
+  teachers?: TeacherInfo[];
   lang?: "en" | "vi";
   onToggleLang?: (lang: "en" | "vi") => void;
 }
@@ -56,9 +57,11 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   availableClasses,
+  teachers,
   lang = "en",
   onToggleLang,
 }) => {
+  const effectiveTeachers = teachers && teachers.length > 0 ? teachers : DEFAULT_TEACHERS;
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const grades: Grade[] = [1, 2, 3, 4, 5];
@@ -79,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
     const classForGrade = availableClasses.find(c => c.startsWith(String(newGrade))) || `${newGrade}A`;
     let tName = schoolInfo.teacherName;
     if (schoolInfo.teacherType === "homeroom") {
-      const matched = DEFAULT_TEACHERS.find(t => t.type === "homeroom" && t.assignedClasses?.includes(classForGrade));
+      const matched = effectiveTeachers.find(t => t.type === "homeroom" && t.assignedClasses?.includes(classForGrade));
       if (matched) tName = matched.name;
     }
     onUpdateSchoolInfo({
@@ -91,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleTeacherChange = (newTeacherName: string) => {
-    const matched = DEFAULT_TEACHERS.find((t) => t.name === newTeacherName);
+    const matched = effectiveTeachers.find((t) => t.name === newTeacherName);
     if (!matched) {
       onUpdateSchoolInfo({ ...schoolInfo, teacherName: newTeacherName });
       return;
@@ -122,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
     const gradeNum = parseInt(newClass.charAt(0)) as Grade;
     let tName = schoolInfo.teacherName;
     if (schoolInfo.teacherType === "homeroom") {
-      const matched = DEFAULT_TEACHERS.find(t => t.type === "homeroom" && t.assignedClasses?.includes(newClass));
+      const matched = effectiveTeachers.find(t => t.type === "homeroom" && t.assignedClasses?.includes(newClass));
       if (matched) tName = matched.name;
     }
     onUpdateSchoolInfo({
@@ -341,10 +344,10 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={onOpenTeacherSelectModal}
                 className="flex items-center gap-1 text-[10px] uppercase font-bold px-2.5 py-1.5 border border-black bg-amber-100 hover:bg-amber-200 text-amber-950 transition-colors shadow-[1px_1px_0px_rgba(0,0,0,1)] cursor-pointer"
-                title={isEn ? "Select among 16 teachers" : "Bảng chọn 16 Giáo viên và lập LBG - KHBD riêng biệt"}
+                title={isEn ? `Select among ${effectiveTeachers.length} teachers` : `Bảng chọn ${effectiveTeachers.length} Giáo viên và lập LBG - KHBD riêng biệt`}
               >
                 <User className="w-3.5 h-3.5" />
-                <span>{isEn ? "Teachers" : "16 Giáo Viên"}</span>
+                <span>{isEn ? `${effectiveTeachers.length} Teachers` : `${effectiveTeachers.length} Giáo Viên`}</span>
               </button>
             )}
 

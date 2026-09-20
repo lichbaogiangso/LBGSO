@@ -8,7 +8,8 @@ import { generateFullWeekLessonPlans } from "../data/curriculumData";
  */
 export function filterPersonalTeacherSchedule(
   items: ScheduleItem[],
-  teacherType: TeacherType = "homeroom"
+  teacherType: TeacherType = "homeroom",
+  homeroomTeacherName?: string
 ): ScheduleItem[] {
   if (teacherType === "specialist") {
     // For specialist teachers, all items in their schedule are already their taught periods
@@ -16,23 +17,49 @@ export function filterPersonalTeacherSchedule(
   }
   // For homeroom teachers, exclude specialist subjects taught by other teachers
   return items.filter((it) => {
-    if (!it.note) return true;
-    const n = it.note;
-    return !n.includes("GV Chuyên") && 
-           !n.includes("GV Bộ môn") && 
-           !n.includes("GV Dạy tiết") && 
-           !n.includes("PHT:") && 
-           !n.includes("PCGD:") && 
-           !n.includes("Thầy Thịnh") &&
-           !n.includes("Cô Nương") &&
-           !n.includes("Cô D.Phương") &&
-           !n.includes("Cô Thy") &&
-           !n.includes("Cô Nguyễn Thị Thanh Tâm") &&
-           !n.includes("Thầy Phước") &&
-           !n.includes("Cô Nhàn") &&
-           !n.includes("Phan Ngọc Quan") &&
-           !n.includes("Tú Trinh") &&
-           !n.includes("Lê Thị Hồng Thủy");
+    // 1. Check if subject is inherently a specialist subject
+    const subjUpper = (it.subject || "").toUpperCase();
+    if (
+      subjUpper.includes("TIẾNG ANH") ||
+      subjUpper.includes("ANH VĂN") ||
+      subjUpper.includes("TIN HỌC") ||
+      subjUpper.includes("ÂM NHẠC") ||
+      subjUpper.includes("MĨ THUẬT") ||
+      subjUpper.includes("MỸ THUẬT") ||
+      subjUpper.includes("GIÁO DỤC THỂ CHẤT") ||
+      subjUpper.includes("GDTC") ||
+      subjUpper.includes("THỂ DỤC")
+    ) {
+      return false;
+    }
+
+    // 2. Check note tags
+    if (it.note) {
+      const n = it.note;
+      if (
+        n.includes("GV Chuyên") ||
+        n.includes("GV Bộ môn") ||
+        n.includes("GV Dạy tiết") ||
+        n.includes("PHT:") ||
+        n.includes("PCGD:")
+      ) {
+        return false;
+      }
+      const specialistTags = [
+        "Thịnh", "Nương", "D.Phương", "Phương", "Thy", "Thanh Tâm", "Tâm",
+        "Phước", "Nhàn", "Quan", "Tú Trinh", "Hồng Thủy", "Nga", "Liêm", "Khỏe", "Ly", "Dung", "Thùy"
+      ];
+      for (const tag of specialistTags) {
+        if (n.includes(tag)) {
+          if (homeroomTeacherName && homeroomTeacherName.includes(tag)) {
+            continue;
+          }
+          return false;
+        }
+      }
+    }
+
+    return true;
   });
 }
 
@@ -91,7 +118,11 @@ export function getScheduleAndPlansForTeacher(
   );
 
   // Filter personal schedule (excluding specialist periods for GVCN)
-  const personalSchedule = filterPersonalTeacherSchedule(rawSchedule, teacherSchoolInfo.teacherType);
+  const personalSchedule = filterPersonalTeacherSchedule(
+    rawSchedule,
+    teacherSchoolInfo.teacherType,
+    teacherSchoolInfo.teacherName
+  );
 
   // Generate Lesson Plans (KHBD) specifically for this teacher's taught subjects
   const scheduleForPlans = isHomeroom ? personalSchedule : rawSchedule;

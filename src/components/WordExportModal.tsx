@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MasterTimetable, LessonPlan, ScheduleItem, SchoolInfo } from "../types";
-import { DEFAULT_TEACHERS } from "../data/defaultTimetables";
+import { DEFAULT_TEACHERS, TeacherInfo } from "../data/defaultTimetables";
 import { getScheduleAndPlansForTeacher } from "../utils/teacherScheduleHelper";
 import {
   exportTimetableDocx,
@@ -37,6 +37,7 @@ interface WordExportModalProps {
   masterTimetable: MasterTimetable;
   scheduleItems: ScheduleItem[];
   lessonPlans: LessonPlan[];
+  teachers?: TeacherInfo[];
   onOpenTeacherSelectModal?: () => void;
   onExportAllTeachersZip?: () => void;
   lang?: "en" | "vi";
@@ -50,14 +51,16 @@ export const WordExportModal: React.FC<WordExportModalProps> = ({
   masterTimetable,
   scheduleItems,
   lessonPlans,
+  teachers,
   onOpenTeacherSelectModal,
   onExportAllTeachersZip,
   lang = "en",
 }) => {
   const isEn = lang === "en";
+  const effectiveTeachers = teachers && teachers.length > 0 ? teachers : DEFAULT_TEACHERS;
   const [downloading, setDownloading] = useState<string | null>(null);
   const [selectedTeacherForExport, setSelectedTeacherForExport] = useState<string>(
-    schoolInfo.teacherName || DEFAULT_TEACHERS[0].name
+    schoolInfo.teacherName || effectiveTeachers[0]?.name || DEFAULT_TEACHERS[0].name
   );
 
   if (!isOpen) return null;
@@ -249,15 +252,15 @@ export const WordExportModal: React.FC<WordExportModalProps> = ({
                         onChange={(e) => setSelectedTeacherForExport(e.target.value)}
                         className="px-2 py-1 bg-white border border-black text-xs font-serif font-bold text-black focus:outline-none cursor-pointer shadow-[1px_1px_0px_rgba(0,0,0,1)]"
                       >
-                        <optgroup label={isEn ? "-- 10 HOMEROOM TEACHERS --" : "-- 10 GV CHỦ NHIỆM --"}>
-                          {DEFAULT_TEACHERS.filter((t) => t.type === "homeroom").map((t) => (
+                        <optgroup label={isEn ? "-- HOMEROOM TEACHERS --" : "-- GIÁO VIÊN CHỦ NHIỆM --"}>
+                          {effectiveTeachers.filter((t) => t.type === "homeroom").map((t) => (
                             <option key={t.id} value={t.name}>
                               {t.name} ({isEn ? `Class ${t.assignedClasses?.[0]}` : `GVCN ${t.assignedClasses?.[0]}`})
                             </option>
                           ))}
                         </optgroup>
-                        <optgroup label={isEn ? "-- 8 SPECIALIST TEACHERS --" : "-- 8 GV CHUYÊN BỘ MÔN --"}>
-                          {DEFAULT_TEACHERS.filter((t) => t.type === "specialist").map((t) => (
+                        <optgroup label={isEn ? "-- SPECIALIST TEACHERS --" : "-- GIÁO VIÊN BỘ MÔN --"}>
+                          {effectiveTeachers.filter((t) => t.type === "specialist").map((t) => (
                             <option key={t.id} value={t.name}>
                               {t.name} ({t.specialistSubject})
                             </option>
@@ -283,7 +286,7 @@ export const WordExportModal: React.FC<WordExportModalProps> = ({
                     className="px-2.5 py-1 text-[10px] uppercase font-bold bg-white hover:bg-stone-200 border border-black transition-colors shadow-[1px_1px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
-                    <span>{isEn ? "18 Teachers Modal" : "Mở Bảng 18 GV"}</span>
+                    <span>{isEn ? "Teachers Modal" : "Bảng Giáo Viên"}</span>
                   </button>
                 )}
               </div>
@@ -311,7 +314,7 @@ export const WordExportModal: React.FC<WordExportModalProps> = ({
                   disabled={downloading === "lbg-teacher-quick"}
                   onClick={() =>
                     handleDownload("lbg-teacher-quick", async () => {
-                      const tObj = DEFAULT_TEACHERS.find((t) => t.name === selectedTeacherForExport) || DEFAULT_TEACHERS[0];
+                      const tObj = effectiveTeachers.find((t) => t.name === selectedTeacherForExport) || effectiveTeachers[0];
                       const data = getScheduleAndPlansForTeacher(tObj, masterTimetable, schoolInfo);
                       const itemsToExport = data.personalScheduleItems.length > 0 ? data.personalScheduleItems : data.scheduleItems;
                       await exportScheduleDocx(data.schoolInfo, itemsToExport);
@@ -329,7 +332,7 @@ export const WordExportModal: React.FC<WordExportModalProps> = ({
                   disabled={downloading === "khbd-teacher-quick"}
                   onClick={() =>
                     handleDownload("khbd-teacher-quick", async () => {
-                      const tObj = DEFAULT_TEACHERS.find((t) => t.name === selectedTeacherForExport) || DEFAULT_TEACHERS[0];
+                      const tObj = effectiveTeachers.find((t) => t.name === selectedTeacherForExport) || effectiveTeachers[0];
                       const data = getScheduleAndPlansForTeacher(tObj, masterTimetable, schoolInfo);
                       await exportLessonPlansDocx(
                         data.schoolInfo,
@@ -348,7 +351,7 @@ export const WordExportModal: React.FC<WordExportModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    const tObj = DEFAULT_TEACHERS.find((t) => t.name === selectedTeacherForExport);
+                    const tObj = effectiveTeachers.find((t) => t.name === selectedTeacherForExport);
                     if (tObj) {
                       const data = getScheduleAndPlansForTeacher(tObj, masterTimetable, schoolInfo);
                       onUpdateSchoolInfo(data.schoolInfo);

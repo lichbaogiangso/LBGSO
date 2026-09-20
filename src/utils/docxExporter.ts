@@ -15,7 +15,7 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import { LessonPlan, ScheduleItem, SchoolInfo, MasterTimetable } from "../types";
-import { DAYS_OF_WEEK, DEFAULT_TEACHERS, isSlotMatchingTeacherOrSubject, getWeekDates } from "../data/defaultTimetables";
+import { DAYS_OF_WEEK, DEFAULT_TEACHERS, TeacherInfo, isSlotMatchingTeacherOrSubject, getWeekDates } from "../data/defaultTimetables";
 import { cleanLessonTitle } from "./lessonTitleHelper";
 import JSZip from "jszip";
 import { getScheduleAndPlansForTeacher } from "./teacherScheduleHelper";
@@ -1765,13 +1765,6 @@ export async function exportLessonPlansDocx(
           spacing: { after: 30 },
           children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })],
         }),
-        new Paragraph({
-          spacing: { after: 40 },
-          children: [
-            new TextRun({ text: `- Mục tiêu: `, bold: true, font, size: baseSize }),
-            new TextRun({ text: act.objective, font, size: baseSize }),
-          ],
-        }),
         ...createActivityCellParagraphs(act.teacherActivity, font, baseSize, "- Cách tiến hành:")
       ];
 
@@ -2208,20 +2201,28 @@ export async function exportCombinedAllInOneDocx(
     ];
 
     plan.activities.forEach((act) => {
+      const teacherParagraphs: Paragraph[] = [
+        new Paragraph({
+          spacing: { after: 30 },
+          children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })],
+        }),
+        ...createActivityCellParagraphs(act.teacherActivity, font, baseSize, "- Cách tiến hành:")
+      ];
+
+      const studentParagraphs: Paragraph[] = [
+        ...createActivityCellParagraphs(act.studentActivity, font, baseSize)
+      ];
+
       activityRows.push(
         new TableRow({
           children: [
             new TableCell({
               width: { size: colHalfWidth, type: WidthType.DXA },
-              children: [
-                new Paragraph({ children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })] }),
-                new Paragraph({ children: [new TextRun({ text: `- Mục tiêu: `, bold: true, font, size: baseSize }), new TextRun({ text: act.objective, font, size: baseSize })] }),
-                new Paragraph({ children: [new TextRun({ text: `- Cách tiến hành: `, bold: true, font, size: baseSize }), new TextRun({ text: act.teacherActivity, font, size: baseSize })] }),
-              ],
+              children: teacherParagraphs,
             }),
             new TableCell({
               width: { size: colHalfWidth, type: WidthType.DXA },
-              children: [new Paragraph({ children: [new TextRun({ text: act.studentActivity, font, size: baseSize })] })],
+              children: studentParagraphs,
             }),
           ],
         })
@@ -2758,13 +2759,6 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
             spacing: { after: 30 },
             children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })],
           }),
-          new Paragraph({
-            spacing: { after: 40 },
-            children: [
-              new TextRun({ text: `- Mục tiêu: `, bold: true, font, size: baseSize }),
-              new TextRun({ text: act.objective, font, size: baseSize }),
-            ],
-          }),
           ...createActivityCellParagraphs(act.teacherActivity, font, baseSize, "- Cách tiến hành:")
         ];
 
@@ -2858,7 +2852,8 @@ export async function exportAllThreeFiles(
 export async function exportAllTeachersZip(
   schoolInfo: SchoolInfo,
   masterTimetable: MasterTimetable,
-  onProgress?: (progress: { message: string; teacherName: string; current: number; total: number; percent: number }) => void
+  onProgress?: (progress: { message: string; teacherName: string; current: number; total: number; percent: number }) => void,
+  teachersList: TeacherInfo[] = DEFAULT_TEACHERS
 ): Promise<void> {
   const zip = new JSZip();
 
@@ -2873,10 +2868,11 @@ export async function exportAllTeachersZip(
   const gvcnFolder = zip.folder("1_Giao_Vien_Chu_Nhiem");
   const specialistFolder = zip.folder("2_Giao_Vien_Bo_Mon_Chuyen");
 
-  const total = DEFAULT_TEACHERS.length;
+  const effectiveTeachers = teachersList && teachersList.length > 0 ? teachersList : DEFAULT_TEACHERS;
+  const total = effectiveTeachers.length;
 
   for (let i = 0; i < total; i++) {
-    const teacher = DEFAULT_TEACHERS[i];
+    const teacher = effectiveTeachers[i];
     const currentNum = i + 1;
     const percent = Math.round((currentNum / (total + 1)) * 90);
 

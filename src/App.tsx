@@ -17,7 +17,7 @@ import {
   Archive,
 } from "lucide-react";
 import { MasterTimetable, LessonPlan, ScheduleItem, SchoolInfo, Grade, TeacherType } from "./types";
-import { DEFAULT_MASTER_TIMETABLE, DEFAULT_CLASSES, DEFAULT_TEACHERS, generateWeeklyScheduleFromTimetable, calculateWeekDateRange } from "./data/defaultTimetables";
+import { DEFAULT_MASTER_TIMETABLE, DEFAULT_CLASSES, DEFAULT_TEACHERS, TeacherInfo, generateWeeklyScheduleFromTimetable, calculateWeekDateRange } from "./data/defaultTimetables";
 import { generateFullWeekLessonPlans } from "./data/curriculumData";
 import {
   exportTimetableDocx,
@@ -41,6 +41,7 @@ import { TeacherSelectModal } from "./components/TeacherSelectModal";
 import { TeacherSyncHub } from "./components/TeacherSyncHub";
 import { TimetableSyncUploadBar } from "./components/TimetableSyncUploadBar";
 import { filterPersonalTeacherSchedule } from "./utils/teacherScheduleHelper";
+import { computeTeacherAssignmentsFromTimetable } from "./utils/teacherAssignmentHelper";
 
 export function App() {
   // 1. School & Teacher Information State
@@ -101,6 +102,27 @@ export function App() {
     }
     return DEFAULT_MASTER_TIMETABLE;
   });
+
+  // 2.1 Teacher Assignments State (dynamically derived and synchronized with MasterTimetable)
+  const [teachers, setTeachers] = useState<TeacherInfo[]>(() => {
+    const saved = localStorage.getItem("th_teachers_assignment");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const initialDerived = computeTeacherAssignmentsFromTimetable(DEFAULT_MASTER_TIMETABLE, DEFAULT_TEACHERS);
+    return initialDerived.teachers;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("th_teachers_assignment", JSON.stringify(teachers));
+  }, [teachers]);
 
   // 3. Navigation & Modal States
   const [activeTab, setActiveTab] = useState<"timetable" | "schedule" | "lessonPlan" | "syncHub" | "integration">("schedule");
@@ -254,31 +276,50 @@ export function App() {
     setMasterTimetable(validTKB);
     localStorage.setItem("th_master_timetable", JSON.stringify(validTKB));
 
+    // Reconcile and calculate teacher assignments dynamically from the new timetable!
+    const reconciled = computeTeacherAssignmentsFromTimetable(validTKB, teachers);
+    const updatedTeachers = reconciled.teachers;
+    setTeachers(updatedTeachers);
+    localStorage.setItem("th_teachers_assignment", JSON.stringify(updatedTeachers));
+
     let updatedInfo = { ...schoolInfo };
     if (targetClassName) {
       const gNum = (parseInt(targetClassName.charAt(0)) as Grade) || 1;
       let tName = schoolInfo.teacherName;
-      if (schoolInfo.teacherType === "homeroom") {
-        const matchedHomeroom = DEFAULT_TEACHERS.find(
-          (t) => t.type === "homeroom" && t.assignedClasses?.includes(targetClassName)
-        );
-        if (matchedHomeroom) {
-          tName = matchedHomeroom.name;
-        }
+      const matchedTeacher = updatedTeachers.find(
+        (t) => t.type === "homeroom" && t.assignedClasses?.includes(targetClassName)
+      );
+      if (matchedTeacher) {
+        tName = matchedTeacher.name;
       }
       updatedInfo = {
         ...updatedInfo,
         className: targetClassName,
         grade: !isNaN(gNum) && gNum >= 1 && gNum <= 5 ? gNum : schoolInfo.grade,
         teacherName: tName,
+        teacherType: matchedTeacher ? "homeroom" : schoolInfo.teacherType,
+        assignedClasses: matchedTeacher?.assignedClasses || [targetClassName],
       };
       setSchoolInfo(updatedInfo);
       localStorage.setItem("th_school_info", JSON.stringify(updatedInfo));
+    } else {
+      // Check if current teacher is in the reconciled list and update their assignments
+      const currentTeacherInNew = updatedTeachers.find((t) => t.name === schoolInfo.teacherName);
+      if (currentTeacherInNew) {
+        updatedInfo = {
+          ...updatedInfo,
+          teacherType: currentTeacherInNew.type as TeacherType,
+          specialistSubject: currentTeacherInNew.specialistSubject || schoolInfo.specialistSubject,
+          assignedClasses: currentTeacherInNew.assignedClasses || schoolInfo.assignedClasses,
+        };
+        setSchoolInfo(updatedInfo);
+        localStorage.setItem("th_school_info", JSON.stringify(updatedInfo));
+      }
     }
 
     refreshScheduleAndPlans(validTKB, updatedInfo);
     setSyncBanner(
-      `Đã đồng bộ thành công Thời khóa biểu mới sang Lịch báo giảng (LBG) và Kế hoạch bài dạy (KHBD) cho Lớp ${updatedInfo.className} (Tuần ${updatedInfo.week})!`
+      `Đã đồng bộ thành công TKB mới ➔ Cập nhật phân công ${updatedTeachers.length} Giáo viên ➔ Lịch báo giảng (LBG) ➔ Kế hoạch bài dạy (KHBD) cho ${targetClassName ? `Lớp ${targetClassName}` : `Toàn trường`} (Tuần ${updatedInfo.week})!`
     );
     setTimeout(() => {
       setSyncBanner(null);
@@ -286,9 +327,14 @@ export function App() {
   };
 
   const handleForceResyncAll = () => {
+    // Reconcile and calculate teacher assignments dynamically from current timetable
+    const reconciled = computeTeacherAssignmentsFromTimetable(masterTimetable, teachers);
+    setTeachers(reconciled.teachers);
+    localStorage.setItem("th_teachers_assignment", JSON.stringify(reconciled.teachers));
+
     refreshScheduleAndPlans(masterTimetable, schoolInfo);
     setSyncBanner(
-      `Đã làm mới và đồng bộ toàn diện: TKB ➔ Lịch báo giảng (LBG) ➔ Kế hoạch bài dạy (KHBD) cho Lớp ${schoolInfo.className} (Tuần ${schoolInfo.week})!`
+      `Đã làm mới và đồng bộ toàn diện: TKB ➔ Phân công ${reconciled.teachers.length} GV ➔ Lịch báo giảng (LBG) ➔ Kế hoạch bài dạy (KHBD) cho Lớp ${schoolInfo.className} (Tuần ${schoolInfo.week})!`
     );
     setTimeout(() => {
       setSyncBanner(null);
@@ -300,7 +346,7 @@ export function App() {
     // If current mode is homeroom teacher, also update homeroom teacher name
     let tName = schoolInfo.teacherName;
     if (schoolInfo.teacherType === "homeroom") {
-      const matchedHomeroom = DEFAULT_TEACHERS.find(
+      const matchedHomeroom = teachers.find(
         (t) => t.type === "homeroom" && t.assignedClasses?.includes(cls)
       );
       if (matchedHomeroom) {
@@ -318,7 +364,7 @@ export function App() {
   };
 
   const handleSelectTeacher = (teacherName: string) => {
-    const matched = DEFAULT_TEACHERS.find((t) => t.name === teacherName);
+    const matched = teachers.find((t) => t.name === teacherName);
     let targetClass = schoolInfo.className;
     let targetGrade = schoolInfo.grade;
 
@@ -421,32 +467,37 @@ export function App() {
     });
   };
 
-  // Master ZIP Export for all 18 teachers
+  // Master ZIP Export for all teachers (dynamically derived from TKB)
   const handleExportAllTeachersZip = async () => {
     setZipProgress({
       isOpen: true,
       isGenerating: true,
-      message: "Khởi tạo dữ liệu và cấu trúc hồ sơ 18 giáo viên...",
+      message: `Khởi tạo dữ liệu và cấu trúc hồ sơ ${teachers.length} giáo viên...`,
       teacherName: "Toàn trường",
       current: 0,
-      total: 18,
+      total: teachers.length,
       percent: 2,
     });
     try {
-      await exportAllTeachersZip(schoolInfo, masterTimetable, (progress) => {
-        setZipProgress({
-          isOpen: true,
-          isGenerating: progress.percent < 100,
-          message: progress.message,
-          teacherName: progress.teacherName,
-          current: progress.current,
-          total: progress.total,
-          percent: progress.percent,
-          done: progress.percent === 100,
-        });
-      });
+      await exportAllTeachersZip(
+        schoolInfo,
+        masterTimetable,
+        (progress) => {
+          setZipProgress({
+            isOpen: true,
+            isGenerating: progress.percent < 100,
+            message: progress.message,
+            teacherName: progress.teacherName,
+            current: progress.current,
+            total: progress.total,
+            percent: progress.percent,
+            done: progress.percent === 100,
+          });
+        },
+        teachers
+      );
       setSyncBanner(
-        `Đã xuất trọn bộ hồ sơ TKB + LBG + KHBD của 18 giáo viên theo TKB mới vào tệp ZIP thành công!`
+        `Đã xuất trọn bộ hồ sơ TKB + LBG + KHBD của ${teachers.length} giáo viên theo TKB mới vào tệp ZIP thành công!`
       );
       setTimeout(() => {
         setSyncBanner(null);
@@ -519,6 +570,7 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         availableClasses={masterTimetable.classes}
+        teachers={teachers}
         lang={lang}
         onToggleLang={handleToggleLang}
       />
@@ -553,25 +605,25 @@ export function App() {
           </div>
 
           <div className="flex items-center flex-wrap gap-2">
-            {/* Quick 18 Teachers Master ZIP Export */}
+            {/* Quick Master Teachers ZIP Export */}
             <button
               onClick={handleExportAllTeachersZip}
               disabled={zipProgress.isGenerating}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-black text-[11px] font-bold uppercase tracking-wider border border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] transition-colors cursor-pointer disabled:opacity-50"
-              title={isEn ? "Download complete package of all 18 teachers in a single ZIP file" : "Tải trọn bộ tài liệu 18 giáo viên toàn trường (TKB, LBG, KHBD) trong 1 tệp ZIP duy nhất"}
+              title={isEn ? `Download complete package of all ${teachers.length} teachers in a single ZIP file` : `Tải trọn bộ tài liệu ${teachers.length} giáo viên toàn trường (TKB, LBG, KHBD) trong 1 tệp ZIP duy nhất`}
             >
               {zipProgress.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5 text-black" />}
-              <span>{isEn ? "Export All 18 Teachers (.ZIP)" : "Xuất Trọn Bộ 18 GV (.ZIP)"}</span>
+              <span>{isEn ? `Export All ${teachers.length} Teachers (.ZIP)` : `Xuất Trọn Bộ ${teachers.length} GV (.ZIP)`}</span>
             </button>
 
-            {/* Quick 18 Teachers Sync Hub Button */}
+            {/* Quick Teachers Sync Hub Button */}
             <button
               onClick={() => setActiveTab("syncHub")}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-bold uppercase tracking-wider border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-colors cursor-pointer"
-              title={isEn ? "Open 18 Teachers Synchronization Hub" : "Mở Bảng Đồng Bộ 18 Giáo viên toàn trường: TKB - LBG - KHBD"}
+              title={isEn ? `Open ${teachers.length} Teachers Synchronization Hub` : `Mở Bảng Đồng Bộ ${teachers.length} Giáo viên toàn trường: TKB - LBG - KHBD`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>{isEn ? "18 Teachers Hub" : "Đồng Bộ 18 Giáo Viên"}</span>
+              <span>{isEn ? `${teachers.length} Teachers Hub` : `Đồng Bộ ${teachers.length} Giáo Viên`}</span>
             </button>
 
             {/* Force Sync All Button */}
@@ -704,6 +756,9 @@ export function App() {
           <TeacherSyncHub
             schoolInfo={schoolInfo}
             masterTimetable={masterTimetable}
+            teachers={teachers}
+            onUpdateTeachers={setTeachers}
+            onForceResyncAll={handleForceResyncAll}
             onSelectTeacher={handleSelectTeacher}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onExportAllTeachersZip={handleExportAllTeachersZip}
@@ -761,6 +816,7 @@ export function App() {
         masterTimetable={masterTimetable}
         scheduleItems={scheduleItems}
         lessonPlans={lessonPlans}
+        teachers={teachers}
         onOpenTeacherSelectModal={() => setIsTeacherSelectModalOpen(true)}
         onExportAllTeachersZip={handleExportAllTeachersZip}
         lang={lang}
@@ -777,6 +833,7 @@ export function App() {
         }}
         masterTimetable={masterTimetable}
         schoolInfo={schoolInfo}
+        teachers={teachers}
         lang={lang}
       />
 

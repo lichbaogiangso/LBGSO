@@ -12,6 +12,7 @@ interface TeacherSelectModalProps {
   onSelectTeacher: (teacherName: string) => void;
   masterTimetable: MasterTimetable;
   schoolInfo: SchoolInfo;
+  teachers?: TeacherInfo[];
   lang?: "en" | "vi";
 }
 
@@ -22,6 +23,7 @@ export const TeacherSelectModal: React.FC<TeacherSelectModalProps> = ({
   onSelectTeacher,
   masterTimetable,
   schoolInfo,
+  teachers,
   lang = "en",
 }) => {
   const isEn = lang === "en";
@@ -30,15 +32,17 @@ export const TeacherSelectModal: React.FC<TeacherSelectModalProps> = ({
 
   if (!isOpen) return null;
 
-  const homeroomTeachers = DEFAULT_TEACHERS.filter((t) => t.type === "homeroom");
-  const specialistTeachers = DEFAULT_TEACHERS.filter((t) => t.type === "specialist");
+  const effectiveTeachers = teachers && teachers.length > 0 ? teachers : DEFAULT_TEACHERS;
+
+  const homeroomTeachers = effectiveTeachers.filter((t) => t.type === "homeroom");
+  const specialistTeachers = effectiveTeachers.filter((t) => t.type === "specialist");
 
   const displayedTeachers =
     filterType === "homeroom"
       ? homeroomTeachers
       : filterType === "specialist"
       ? specialistTeachers
-      : DEFAULT_TEACHERS;
+      : effectiveTeachers;
 
   const handleDownloadTeacherTKB = async (teacher: TeacherInfo) => {
     const key = `${teacher.id}-tkb`;

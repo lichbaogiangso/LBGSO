@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { MasterTimetable, SchoolInfo } from "../types";
-import { DEFAULT_TEACHERS, TeacherInfo } from "../data/defaultTimetables";
+import { DEFAULT_TEACHERS, TeacherInfo, DEFAULT_CLASSES } from "../data/defaultTimetables";
 import {
   Users,
   CheckCircle2,
@@ -16,7 +16,13 @@ import {
   Building2,
   Check,
   Archive,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Edit3,
+  X,
+  Plus,
+  Trash2,
+  AlertCircle
 } from "lucide-react";
 import {
   exportTeacherTimetableDocx,
@@ -26,10 +32,14 @@ import {
   exportAllThreeFiles
 } from "../utils/docxExporter";
 import { getScheduleAndPlansForTeacher } from "../utils/teacherScheduleHelper";
+import { computeTeacherAssignmentsFromTimetable } from "../utils/teacherAssignmentHelper";
 
 interface TeacherSyncHubProps {
   schoolInfo: SchoolInfo;
   masterTimetable: MasterTimetable;
+  teachers?: TeacherInfo[];
+  onUpdateTeachers?: (teachers: TeacherInfo[]) => void;
+  onForceResyncAll?: () => void;
   onSelectTeacher: (teacherName: string) => void;
   onNavigateTab: (tab: "timetable" | "schedule" | "lessonPlan") => void;
   onExportAllTeachersZip?: () => void;
@@ -40,6 +50,9 @@ interface TeacherSyncHubProps {
 export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
   schoolInfo,
   masterTimetable,
+  teachers,
+  onUpdateTeachers,
+  onForceResyncAll,
   onSelectTeacher,
   onNavigateTab,
   onExportAllTeachersZip,
@@ -50,11 +63,20 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
   const [filterType, setFilterType] = useState<"all" | "homeroom" | "specialist">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [downloadingAction, setDownloadingAction] = useState<string | null>(null);
+  
+  // Teacher Assignment Editor Modal State
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [assignmentDraft, setAssignmentDraft] = useState<TeacherInfo[]>([]);
+  const [assignmentSuccessNotice, setAssignmentSuccessNotice] = useState<string | null>(null);
 
-  const homeroomList = DEFAULT_TEACHERS.filter((t) => t.type === "homeroom");
-  const specialistList = DEFAULT_TEACHERS.filter((t) => t.type === "specialist");
+  const effectiveTeachers = teachers && teachers.length > 0 ? teachers : DEFAULT_TEACHERS;
 
-  const filteredTeachers = DEFAULT_TEACHERS.filter((t) => {
+  const homeroomList = effectiveTeachers.filter((t) => t.type === "homeroom");
+  const specialistList = effectiveTeachers.filter((t) => t.type === "specialist");
+
+  const totalTeachingPeriods = effectiveTeachers.reduce((acc, t) => acc + (t.teachingPeriods || 0), 0);
+
+  const filteredTeachers = effectiveTeachers.filter((t) => {
     const matchesType =
       filterType === "all" ||
       (filterType === "homeroom" && t.type === "homeroom") ||
@@ -66,6 +88,36 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
       (t.assignedClasses && t.assignedClasses.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase())));
     return matchesType && matchesSearch;
   });
+
+  const handleOpenAssignmentModal = () => {
+    setAssignmentDraft(JSON.parse(JSON.stringify(effectiveTeachers)));
+    setIsAssignmentModalOpen(true);
+    setAssignmentSuccessNotice(null);
+  };
+
+  const handleAutoReconcileAssignments = () => {
+    const result = computeTeacherAssignmentsFromTimetable(masterTimetable, assignmentDraft);
+    setAssignmentDraft(result.teachers);
+    setAssignmentSuccessNotice(
+      `Đã tự động rà soát ${result.totalSchoolSlots} tiết từ TKB hiện tại: Khớp xong ${result.syncedHomeroomCount} GVCN và ${result.syncedSpecialistCount} GV Bộ môn!`
+    );
+  };
+
+  const handleResetDefaultAssignments = () => {
+    const result = computeTeacherAssignmentsFromTimetable(masterTimetable, DEFAULT_TEACHERS);
+    setAssignmentDraft(result.teachers);
+    setAssignmentSuccessNotice("Đã khôi phục phân công giáo viên về cấu hình chuẩn ban đầu và đồng bộ theo TKB!");
+  };
+
+  const handleSaveAssignments = () => {
+    if (onUpdateTeachers) {
+      onUpdateTeachers(assignmentDraft);
+    }
+    if (onForceResyncAll) {
+      onForceResyncAll();
+    }
+    setIsAssignmentModalOpen(false);
+  };
 
   // Export TKB for teacher
   const handleDownloadTeacherTKB = async (t: TeacherInfo) => {
@@ -163,6 +215,28 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
 
           {/* Quick Batch Actions */}
           <div className="flex items-center flex-wrap gap-2">
+            {onForceResyncAll && (
+              <button
+                type="button"
+                onClick={onForceResyncAll}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors"
+                title={isEn ? "Force Re-synchronize Timetable, Teacher Assignments, Schedules, and Lesson Plans for all 18 teachers" : "Buộc đồng bộ lại toàn diện: Thời khóa biểu ➔ Phân công 18 GV ➔ Lịch báo giảng (LBG) ➔ Kế hoạch bài dạy (KHBD)"}
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-white" />
+                <span>{isEn ? "Sync TKB ➔ 18 Teachers" : "Đồng Bộ Lại Toàn Bộ 18 GV"}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleOpenAssignmentModal}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-950 text-xs font-bold uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors"
+              title={isEn ? "Manage Teacher Assignments (Teaching Load & Subject Pairing)" : "Quản lý bảng phân công chuyên môn giáo viên, số tiết thực dạy, kiêm nhiệm theo TKB"}
+            >
+              <Edit3 className="w-3.5 h-3.5 text-amber-900" />
+              <span>{isEn ? "Teacher Assignments" : "Phân Công Giáo Viên"}</span>
+            </button>
+
             {onExportAllTeachersZip && (
               <button
                 type="button"
@@ -183,19 +257,7 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               title={isEn ? "Download School-wide Timetable A4 (Landscape)" : "Tải bảng TKB A4 Toàn trường (khổ ngang)"}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>{isEn ? "Download School Timetable (.docx)" : "Tải TKB Toàn Trường (.docx)"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                const current = DEFAULT_TEACHERS.find((t) => t.name === schoolInfo.teacherName) || DEFAULT_TEACHERS[0];
-                handleDownloadTeacherKHBD(current);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-black hover:bg-stone-800 text-white text-xs font-bold uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors"
-            >
-              <FileDown className="w-3.5 h-3.5 text-amber-400" />
-              <span>{isEn ? `Download All for Active Teacher (${schoolInfo.teacherName.split(" ").pop()})` : `Tải Trọn Bộ GV Hiện Tại (${schoolInfo.teacherName.split(" ").pop()})`}</span>
+              <span>{isEn ? "School Timetable (.docx)" : "Tải TKB Toàn Trường"}</span>
             </button>
           </div>
         </div>
@@ -207,8 +269,14 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               <Users className="w-5 h-5 text-black" />
             </div>
             <div>
-              <div className="text-lg font-mono font-black text-black">{isEn ? "18 Teachers" : "18 Giáo Viên"}</div>
-              <div className="text-[11px] text-stone-600">{isEn ? "10 Homeroom + 8 Specialist" : "10 GV Chủ Nhiệm + 8 GV Bộ Môn"}</div>
+              <div className="text-lg font-mono font-black text-black">
+                {isEn ? `${effectiveTeachers.length} Teachers` : `${effectiveTeachers.length} Giáo Viên`}
+              </div>
+              <div className="text-[11px] text-stone-600">
+                {isEn 
+                  ? `${homeroomList.length} Homeroom + ${specialistList.length} Specialist` 
+                  : `${homeroomList.length} GV Chủ Nhiệm + ${specialistList.length} GV Bộ Môn`}
+              </div>
             </div>
           </div>
 
@@ -217,8 +285,12 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               <Building2 className="w-5 h-5 text-amber-900" />
             </div>
             <div>
-              <div className="text-lg font-mono font-black text-black">{isEn ? "10 Classes" : "10 Lớp Học"}</div>
-              <div className="text-[11px] text-stone-600">1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B</div>
+              <div className="text-lg font-mono font-black text-black">
+                {isEn ? `${masterTimetable.classes?.length || 10} Classes` : `${masterTimetable.classes?.length || 10} Lớp Học`}
+              </div>
+              <div className="text-[11px] text-stone-600 truncate max-w-[200px]">
+                {masterTimetable.classes?.join(", ") || "1A, 1B, 2A, 2B, 3A, 3B, 4A, 4B, 5A, 5B"}
+              </div>
             </div>
           </div>
 
@@ -227,8 +299,12 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               <CheckCircle2 className="w-5 h-5 text-emerald-800" />
             </div>
             <div>
-              <div className="text-lg font-mono font-black text-emerald-900">{isEn ? "320 Periods / Wk" : "320 Tiết / Tuần"}</div>
-              <div className="text-[11px] text-stone-600">{isEn ? "100% Synced TKB • Schedule • Plans" : "Đồng bộ TKB • LBG • KHBD 100%"}</div>
+              <div className="text-lg font-mono font-black text-emerald-900">
+                {isEn ? `${totalTeachingPeriods} Periods / Wk` : `${totalTeachingPeriods} Tiết / Tuần`}
+              </div>
+              <div className="text-[11px] text-stone-600 font-mono">
+                {isEn ? "100% Synced TKB • Schedule • Plans" : "Đồng bộ TKB • Phân công • LBG • KHBD"}
+              </div>
             </div>
           </div>
         </div>
@@ -245,7 +321,7 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               filterType === "all" ? "bg-black text-white" : "bg-white text-stone-800 hover:bg-stone-200"
             }`}
           >
-            {isEn ? `All 18 Teachers (${DEFAULT_TEACHERS.length})` : `Tất Cả 18 Giáo Viên (${DEFAULT_TEACHERS.length})`}
+            {isEn ? `All Teachers (${effectiveTeachers.length})` : `Tất Cả Giáo Viên (${effectiveTeachers.length})`}
           </button>
           <button
             type="button"
@@ -254,7 +330,7 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               filterType === "homeroom" ? "bg-black text-white" : "bg-white text-stone-800 hover:bg-stone-200"
             }`}
           >
-            {isEn ? `10 Homeroom Teachers (${homeroomList.length})` : `10 GV Chủ Nhiệm (${homeroomList.length})`}
+            {isEn ? `Homeroom Teachers (${homeroomList.length})` : `GV Chủ Nhiệm (${homeroomList.length})`}
           </button>
           <button
             type="button"
@@ -263,7 +339,7 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
               filterType === "specialist" ? "bg-black text-white" : "bg-white text-stone-800 hover:bg-stone-200"
             }`}
           >
-            {isEn ? `8 Specialist Teachers (${specialistList.length})` : `8 GV Bộ Môn & Chuyên (${specialistList.length})`}
+            {isEn ? `Specialist Teachers (${specialistList.length})` : `GV Bộ Môn & Chuyên (${specialistList.length})`}
           </button>
         </div>
 
@@ -485,8 +561,8 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
         <h4 className="text-xs font-bold uppercase tracking-wider text-black font-serif flex items-center gap-2 mb-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-700" />
           {isEn 
-            ? `Automated Sync Standard According to Week ${schoolInfo.week} Timetable (07/09/2026 - 11/09/2026)` 
-            : `Quy Chuẩn Đồng Bộ Tự Động Theo Thời Khóa Biểu Tuần ${schoolInfo.week} (07/09/2026 - 11/09/2026)`}
+            ? `Automated Sync Standard According to Week ${schoolInfo.week} Timetable (${schoolInfo.startDate} - ${schoolInfo.endDate})` 
+            : `Quy Chuẩn Đồng Bộ Tự Động Theo Thời Khóa Biểu Tuần ${schoolInfo.week} (${schoolInfo.startDate} - ${schoolInfo.endDate})`}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-stone-700 leading-relaxed font-serif">
           <div className="bg-white p-3 border border-stone-300">
@@ -508,6 +584,302 @@ export const TeacherSyncHub: React.FC<TeacherSyncHubProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Teacher Assignment Editor Modal */}
+      {isAssignmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white border-2 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-stone-900 text-white p-4 border-b-2 border-black flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 bg-amber-400 text-black">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-black text-sm uppercase tracking-wide">
+                    {isEn ? "Teacher Assignment Matrix & Workload Manager" : "Bảng Phân Công Giảng Dạy & Định Mức Giáo Viên"}
+                  </h3>
+                  <p className="text-[11px] text-stone-300 font-mono">
+                    {isEn 
+                      ? "Automatically synchronizes with current Timetable, Schedule (LBG) & Lesson Plans (KHBD)" 
+                      : "Tự động đồng bộ với Thời khóa biểu, Lịch báo giảng (LBG) và Kế hoạch bài dạy (KHBD)"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAssignmentModalOpen(false)}
+                className="p-1 text-stone-300 hover:text-white hover:bg-stone-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Action Toolbar */}
+            <div className="p-3 bg-stone-100 border-b border-black flex flex-wrap items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleAutoReconcileAssignments}
+                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 cursor-pointer"
+                  title="Quét toàn bộ ma trận tiết học trong TKB để tính chính xác số tiết và lớp phụ trách của từng GV"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-white" />
+                  <span>{isEn ? "Auto-Detect From TKB" : "Tự Động Tính & Khớp Từ TKB"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetDefaultAssignments}
+                  className="px-3 py-1.5 bg-white hover:bg-stone-200 text-black text-xs font-bold uppercase tracking-wider border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>{isEn ? "Reset Default" : "Khôi Phục Mặc Định"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newId = `teacher_${Date.now()}`;
+                    setAssignmentDraft([
+                      ...assignmentDraft,
+                      {
+                        id: newId,
+                        name: "Giáo Viên Mới",
+                        role: "GV Bộ môn",
+                        type: "specialist",
+                        specialistSubject: "Bộ môn",
+                        assignedClasses: ["1A", "1B"],
+                        subjects: ["Bộ môn"],
+                        teachingPeriods: 4,
+                        concurrentPeriods: 0,
+                        totalPeriods: 4,
+                      },
+                    ]);
+                  }}
+                  className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-stone-900 text-xs font-bold uppercase tracking-wider border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{isEn ? "Add Teacher" : "Thêm Giáo Viên"}</span>
+                </button>
+              </div>
+
+              <span className="text-[11px] font-mono text-stone-600">
+                {isEn ? `Total Teachers: ${assignmentDraft.length}` : `Tổng số: ${assignmentDraft.length} Giáo viên`}
+              </span>
+            </div>
+
+            {/* Notification alert if auto-calculated */}
+            {assignmentSuccessNotice && (
+              <div className="p-2.5 bg-emerald-50 border-b border-emerald-300 text-emerald-900 text-xs flex items-center justify-between gap-2 shrink-0 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span className="font-serif font-bold">{assignmentSuccessNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAssignmentSuccessNotice(null)}
+                  className="text-emerald-700 hover:text-emerald-900 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Editable Teacher Assignments Table */}
+            <div className="flex-1 overflow-auto p-4">
+              <table className="w-full text-left border-collapse text-xs border border-black">
+                <thead>
+                  <tr className="bg-stone-200 border-b border-black text-stone-900 font-serif font-bold uppercase text-[10px] tracking-wider sticky top-0 z-10">
+                    <th className="py-2 px-2 border-r border-black w-10 text-center">STT</th>
+                    <th className="py-2 px-2.5 border-r border-black min-w-[140px]">Họ và Tên Giáo Viên</th>
+                    <th className="py-2 px-2 border-r border-black w-28 text-center">Phân Loại</th>
+                    <th className="py-2 px-2 border-r border-black min-w-[110px]">Lớp Phụ Trách</th>
+                    <th className="py-2 px-2 border-r border-black min-w-[110px]">Môn Phân Công</th>
+                    <th className="py-2 px-2 border-r border-black w-20 text-center">Tiết TKB</th>
+                    <th className="py-2 px-2 border-r border-black w-20 text-center">Kiêm Nhiệm</th>
+                    <th className="py-2 px-2 border-r border-black w-20 text-center">Tổng Tiết</th>
+                    <th className="py-2 px-2 text-center w-12">Xóa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-300">
+                  {assignmentDraft.map((teacher, idx) => {
+                    const teachingP = Number(teacher.teachingPeriods || 0);
+                    const concurrentP = Number(teacher.concurrentPeriods || 0);
+                    const totalP = teachingP + concurrentP;
+
+                    return (
+                      <tr key={teacher.id || idx} className={idx % 2 === 0 ? "bg-white" : "bg-stone-50"}>
+                        <td className="py-1.5 px-2 border-r border-black text-center font-mono font-bold">
+                          {idx + 1}
+                        </td>
+
+                        {/* Name */}
+                        <td className="py-1.5 px-2 border-r border-black">
+                          <input
+                            type="text"
+                            value={teacher.name}
+                            onChange={(e) => {
+                              const updated = [...assignmentDraft];
+                              updated[idx].name = e.target.value;
+                              setAssignmentDraft(updated);
+                            }}
+                            className="w-full px-2 py-1 text-xs border border-stone-300 focus:border-black focus:outline-none bg-white font-bold font-serif"
+                          />
+                        </td>
+
+                        {/* Type */}
+                        <td className="py-1.5 px-2 border-r border-black text-center">
+                          <select
+                            value={teacher.type}
+                            onChange={(e) => {
+                              const updated = [...assignmentDraft];
+                              const newType = e.target.value as "homeroom" | "specialist";
+                              updated[idx].type = newType;
+                              if (newType === "homeroom") {
+                                updated[idx].role = `GVCN ${updated[idx].assignedClasses?.[0] || "1A"}`;
+                              } else {
+                                updated[idx].role = `GV Chuyên ${updated[idx].specialistSubject || "Bộ môn"}`;
+                              }
+                              setAssignmentDraft(updated);
+                            }}
+                            className="w-full px-1 py-1 text-[11px] border border-stone-300 font-bold bg-white"
+                          >
+                            <option value="homeroom">GVCN</option>
+                            <option value="specialist">GV Bộ môn</option>
+                          </select>
+                        </td>
+
+                        {/* Assigned Classes */}
+                        <td className="py-1.5 px-2 border-r border-black">
+                          <input
+                            type="text"
+                            value={(teacher.assignedClasses || []).join(", ")}
+                            onChange={(e) => {
+                              const updated = [...assignmentDraft];
+                              const raw = e.target.value;
+                              updated[idx].assignedClasses = raw
+                                .split(",")
+                                .map((c) => c.trim().toUpperCase())
+                                .filter(Boolean);
+                              if (updated[idx].type === "homeroom" && updated[idx].assignedClasses[0]) {
+                                updated[idx].role = `GVCN ${updated[idx].assignedClasses[0]}`;
+                              }
+                              setAssignmentDraft(updated);
+                            }}
+                            placeholder="vd: 1A hoặc 1A, 2A..."
+                            className="w-full px-2 py-1 text-xs border border-stone-300 focus:border-black focus:outline-none bg-white font-mono"
+                          />
+                        </td>
+
+                        {/* Subject */}
+                        <td className="py-1.5 px-2 border-r border-black">
+                          {teacher.type === "specialist" ? (
+                            <input
+                              type="text"
+                              value={teacher.specialistSubject || ""}
+                              onChange={(e) => {
+                                const updated = [...assignmentDraft];
+                                updated[idx].specialistSubject = e.target.value;
+                                updated[idx].role = `GV Chuyên ${e.target.value} (${teacher.teachingPeriods || 0} tiết)`;
+                                setAssignmentDraft(updated);
+                              }}
+                              placeholder="Tiếng Anh, Tin học..."
+                              className="w-full px-2 py-1 text-xs border border-stone-300 focus:border-black focus:outline-none bg-white"
+                            />
+                          ) : (
+                            <span className="text-[10px] text-stone-500 italic">
+                              Tiếng Việt, Toán, HĐTN...
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Teaching periods */}
+                        <td className="py-1.5 px-2 border-r border-black text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="35"
+                            value={teachingP}
+                            onChange={(e) => {
+                              const updated = [...assignmentDraft];
+                              const val = parseInt(e.target.value) || 0;
+                              updated[idx].teachingPeriods = val;
+                              updated[idx].totalPeriods = val + (updated[idx].concurrentPeriods || 0);
+                              setAssignmentDraft(updated);
+                            }}
+                            className="w-14 px-1 py-1 text-xs border border-stone-300 text-center font-mono font-bold text-emerald-800"
+                          />
+                        </td>
+
+                        {/* Concurrent periods */}
+                        <td className="py-1.5 px-2 border-r border-black text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max="15"
+                            value={concurrentP}
+                            onChange={(e) => {
+                              const updated = [...assignmentDraft];
+                              const val = parseInt(e.target.value) || 0;
+                              updated[idx].concurrentPeriods = val;
+                              updated[idx].totalPeriods = (updated[idx].teachingPeriods || 0) + val;
+                              setAssignmentDraft(updated);
+                            }}
+                            className="w-14 px-1 py-1 text-xs border border-stone-300 text-center font-mono text-stone-700"
+                          />
+                        </td>
+
+                        {/* Total periods */}
+                        <td className="py-1.5 px-2 border-r border-black text-center font-mono font-bold text-black">
+                          {totalP}
+                        </td>
+
+                        {/* Delete */}
+                        <td className="py-1.5 px-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAssignmentDraft(assignmentDraft.filter((_, i) => i !== idx));
+                            }}
+                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                            title="Xóa giáo viên"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-stone-100 border-t-2 border-black flex items-center justify-between gap-3 shrink-0">
+              <div className="text-xs text-stone-600 font-serif">
+                <span className="font-bold text-black">Lưu ý:</span> Khi bấm lưu, hệ thống sẽ tự động cập nhật phân công và đồng bộ lại toàn bộ Lịch báo giảng (LBG) và Kế hoạch bài dạy (KHBD) cho cả 18 giáo viên.
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAssignmentModalOpen(false)}
+                  className="px-4 py-2 bg-white hover:bg-stone-200 text-black text-xs font-bold uppercase tracking-wider border border-black shadow-[1px_1px_0px_rgba(0,0,0,1)] cursor-pointer"
+                >
+                  {isEn ? "Cancel" : "Hủy Bỏ"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAssignments}
+                  className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isEn ? "Save & Sync All (TKB • LBG • KHBD)" : "Lưu & Đồng Bộ Toàn Trường"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -518,6 +518,21 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
                                     STEM: {plan.objectives.integrations.stem}
                                   </span>
                                 )}
+                                {plan.objectives.integrations.nutrition && (
+                                  <span className="px-1.5 py-0.5 bg-orange-50 text-orange-900 text-[10px] border border-orange-200 font-sans">
+                                    {isEn ? "Nutrition: " : "Dinh dưỡng: "}{plan.objectives.integrations.nutrition}
+                                  </span>
+                                )}
+                                {plan.objectives.integrations.environment && (
+                                  <span className="px-1.5 py-0.5 bg-teal-50 text-teal-900 text-[10px] border border-teal-200 font-sans">
+                                    {isEn ? "Environment: " : "Môi trường: "}{plan.objectives.integrations.environment}
+                                  </span>
+                                )}
+                                {plan.objectives.integrations.lifeSkills && (
+                                  <span className="px-1.5 py-0.5 bg-cyan-50 text-cyan-900 text-[10px] border border-cyan-200 font-sans">
+                                    {isEn ? "Life Skills: " : "Kỹ năng sống: "}{plan.objectives.integrations.lifeSkills}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>
@@ -548,11 +563,6 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
                                 <tr key={ai} className="hover:bg-stone-50">
                                   <td className="py-2 px-3 align-top font-bold text-stone-900 border-r border-black text-[11px]">
                                     {ai + 1}. {act.name}
-                                    {act.objective && (
-                                      <div className="text-[10px] font-normal text-stone-600 mt-0.5">
-                                        {isEn ? "Objective: " : "Mục tiêu: "}{act.objective}
-                                      </div>
-                                    )}
                                   </td>
                                   <td className="py-2 px-3 align-top text-stone-800 border-r border-black text-[11px] leading-relaxed whitespace-pre-line">
                                     {act.teacherActivity}
@@ -997,9 +1007,6 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
                           <td className="py-3 px-4 border-r border-black align-top space-y-2">
                             <div className="font-bold text-black text-xs uppercase">
                               {act.name}
-                            </div>
-                            <div className="text-xs text-stone-700 bg-stone-100 p-2 border border-stone-300">
-                              <strong>{isEn ? "* Objective: " : "* Mục tiêu: "}</strong>{act.objective}
                             </div>
                             <div className="text-stone-900 leading-relaxed whitespace-pre-line text-xs">
                               <strong>{isEn ? "* Procedure: " : "* Cách tiến hành: "}</strong>
