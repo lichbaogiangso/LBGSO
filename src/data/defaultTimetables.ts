@@ -3,6 +3,7 @@ import { getDetailedMusicLesson } from "./musicLessonDetails";
 import { getDetailedEnglishLesson } from "./englishLessonDetails";
 import { getGradeCurriculumLesson } from "./gradeCurriculums";
 import { cleanLessonTitle } from "../utils/lessonTitleHelper";
+import { getATGTGrade5LessonInfo } from "./atgtGrade5Data";
 
 export interface TeacherInfo {
   id: string;
@@ -27,8 +28,8 @@ export const DEFAULT_TEACHERS: TeacherInfo[] = [
   { id: "dat_3b", name: "Hoàng Văn Đạt", role: "GVCN 3B", type: "homeroom", assignedClasses: ["3B"], subjects: ["Tiếng Việt", "Toán", "Đạo đức", "HĐTN", "TCTV", "TCT", "CN"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
   { id: "hang_4a", name: "Lê Thị Hằng", role: "GVCN 4A", type: "homeroom", assignedClasses: ["4A"], subjects: ["Tiếng Việt", "Toán", "Khoa học", "Lịch sử & Địa lí", "HĐTN", "TCTV"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
   { id: "yen_4b", name: "Cô Yến", role: "GVCN 4B", type: "homeroom", assignedClasses: ["4B"], subjects: ["Tiếng Việt", "Toán", "Khoa học", "Lịch sử & Địa lí", "HĐTN"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
-  { id: "tuan_5a", name: "Nguyễn Hoàng Tuấn", role: "GVCN 5A", type: "homeroom", assignedClasses: ["5A"], subjects: ["Tiếng Việt", "Toán", "Khoa học", "Lịch sử & Địa lí", "HĐTN", "TCTV"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
-  { id: "hue_5b", name: "Trần Thị Huế", role: "GVCN 5B", type: "homeroom", assignedClasses: ["5B"], subjects: ["Tiếng Việt", "Toán", "Khoa học", "Lịch sử & Địa lí", "HĐTN", "TCTV"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
+  { id: "tuan_5a", name: "Nguyễn Hoàng Tuấn", role: "GVCN 5A", type: "homeroom", assignedClasses: ["5A"], subjects: ["Tiếng Việt", "Toán", "Khoa học", "Lịch sử & Địa lí", "HĐTN", "TCTV", "An toàn giao thông", "ATGT"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
+  { id: "hue_5b", name: "Trần Thị Huế", role: "GVCN 5B", type: "homeroom", assignedClasses: ["5B"], subjects: ["Tiếng Việt", "Toán", "Khoa học", "Lịch sử & Địa lí", "HĐTN", "TCTV", "An toàn giao thông", "ATGT"], teachingPeriods: 19, concurrentPeriods: 4, totalPeriods: 23 },
 
   // 8 GIÁO VIÊN CHUYÊN & BỘ MÔN (TOÀN TRƯỜNG)
   { id: "tam_an", name: "Nguyễn Thị Thanh Tâm", role: "GV Chuyên Âm nhạc (20 tiết)", type: "specialist", specialistSubject: "Âm nhạc", assignedClasses: ["1A", "1B", "2A", "2B", "3A", "3B", "4A", "4B", "5A", "5B"], subjects: ["Âm nhạc", "AN", "BDAN"], teachingPeriods: 20, totalPeriods: 20 },
@@ -347,11 +348,60 @@ export function isSlotMatchingTeacherOrSubject(
   return false;
 }
 
+/**
+ * Automatically adjust timetable for specific weeks.
+ * Starting from Week 3, Grade 5 introduces "An toàn giao thông" (ATGT) (1 lesson per 2 weeks):
+ * - Tiết 4 ngày Thứ Sáu: ATGT (An toàn giao thông) cho lớp 5A và 5B
+ * - Tiết 5 ngày Thứ Sáu: HĐTN (SHL) cho lớp 5A và 5B (vì tiết ATGT dạy 15 phút kết hợp SHL)
+ */
+export function getEffectiveTimetableForWeek(
+  master: MasterTimetable,
+  week: number = 1
+): MasterTimetable {
+  if (week < 3 || !master || !master.slots) return master;
+
+  const newSlots: Record<string, Record<string, string>> = {};
+  for (const [key, val] of Object.entries(master.slots)) {
+    newSlots[key] = { ...val };
+  }
+
+  // Khối 5 từ Tuần 3: Tiết 4 Thứ Sáu là ATGT, Tiết 5 Thứ Sáu là HĐTN (SHL)
+  if (newSlots["Thứ Sáu_Sáng_4"]) {
+    newSlots["Thứ Sáu_Sáng_4"] = {
+      ...newSlots["Thứ Sáu_Sáng_4"],
+      "5A": "ATGT",
+      "5B": "ATGT",
+    };
+  }
+  if (newSlots["Thứ Sáu_Sáng_5"]) {
+    newSlots["Thứ Sáu_Sáng_5"] = {
+      ...newSlots["Thứ Sáu_Sáng_5"],
+      "5A": "HĐTN (SHL)",
+      "5B": "HĐTN (SHL)",
+    };
+  }
+
+  return {
+    ...master,
+    slots: newSlots,
+  };
+}
+
 // Helper to categorize subject shorthand for sequential weekly period counting
 export function getSubjectCategory(raw: string, day: DayOfWeek, period: number): string {
   const clean = raw.trim();
   const cUpper = clean.toUpperCase();
   const cLower = clean.toLowerCase();
+
+  // 0. An toàn giao thông (ATGT)
+  if (
+    clean === "ATGT" ||
+    clean.startsWith("ATGT") ||
+    cUpper.includes("ATGT") ||
+    cLower.includes("an toàn giao thông")
+  ) {
+    return "ATGT";
+  }
 
   // 1. Chào cờ / Sinh hoạt dưới cờ (HĐTN)
   if (
@@ -490,6 +540,7 @@ export function generateScheduleForClass(
   startDateStr?: string,
   teacherName: string = "Nguyễn Hoàng Tuấn"
 ): ScheduleItem[] {
+  const effectiveMaster = getEffectiveTimetableForWeek(master, week);
   const items: ScheduleItem[] = [];
   const dates = getWeekDates(startDateStr, week);
   const subjectCounters: Record<string, number> = {};
@@ -498,7 +549,7 @@ export function generateScheduleForClass(
     // Sáng (Tiết 1 -> 5)
     for (let p = 1; p <= 5; p++) {
       const key = `${day}_Sáng_${p}`;
-      const slotRow = master.slots[key] || {};
+      const slotRow = effectiveMaster.slots[key] || {};
       const subjectRaw = (
         slotRow[targetClass] ||
         slotRow[targetClass.toUpperCase()] ||
@@ -529,7 +580,7 @@ export function generateScheduleForClass(
     // Chiều (Tiết 1 -> 4)
     for (let p = 1; p <= 4; p++) {
       const key = `${day}_Chiều_${p}`;
-      const slotRow = master.slots[key] || {};
+      const slotRow = effectiveMaster.slots[key] || {};
       const subjectRaw = (
         slotRow[targetClass] ||
         slotRow[targetClass.toUpperCase()] ||
@@ -650,10 +701,11 @@ export function generateWeeklyScheduleFromTimetable(
   specialistSubject: string = "Tiếng Anh",
   assignedClasses: string[] = DEFAULT_CLASSES
 ): ScheduleItem[] {
+  const effectiveMaster = getEffectiveTimetableForWeek(master, week);
   if (teacherType === "specialist") {
-    return generateSpecialistSchedule(master, teacherName, specialistSubject, week, startDateStr, assignedClasses);
+    return generateSpecialistSchedule(effectiveMaster, teacherName, specialistSubject, week, startDateStr, assignedClasses);
   }
-  return generateScheduleForClass(master, targetClass, week, startDateStr, teacherName);
+  return generateScheduleForClass(effectiveMaster, targetClass, week, startDateStr, teacherName);
 }
 
 // Helper to map shorthand cell string to detailed Lesson Plan Item
@@ -893,6 +945,29 @@ export function mapRawSubjectToScheduleItem(
     lessonTitle = `Tài liệu Giáo dục địa phương tuần ${week}`;
     curriculumPeriod = `GDĐP${week}`;
     integrationNotes = "Giáo dục truyền thống văn hóa quê hương";
+  }
+
+  // 14b. AN TOÀN GIAO THÔNG (ATGT)
+  else if (
+    clean === "ATGT" ||
+    clean.startsWith("ATGT") ||
+    clean.includes("ATGT") ||
+    clean.toLowerCase().includes("an toàn giao thông") ||
+    clean.toLowerCase().includes("atgt") ||
+    clean.toLowerCase().includes("giao thông")
+  ) {
+    subject = `AN TOÀN GIAO THÔNG`;
+    subSubject = "An toàn giao thông";
+    if (gradeNum === 5) {
+      const atgtInfo = getATGTGrade5LessonInfo(week);
+      lessonTitle = atgtInfo.lessonTitle;
+      curriculumPeriod = atgtInfo.curriculumPeriod;
+      integrationNotes = "Giáo dục Luật Giao thông đường bộ, văn hóa giao thông & KNS";
+    } else {
+      lessonTitle = `Giáo dục An toàn giao thông tuần ${week}`;
+      curriculumPeriod = week;
+      integrationNotes = "Giáo dục an toàn giao thông";
+    }
   }
 
   // 15. TĂNG CƯỜNG TIẾNG VIỆT (TCTV, Luyện TV)

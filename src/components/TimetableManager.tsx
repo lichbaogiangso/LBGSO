@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { DayOfWeek, MasterTimetable, SchoolInfo, SessionType } from "../types";
-import { DAYS_OF_WEEK, DEFAULT_TEACHERS, isSlotMatchingTeacherOrSubject } from "../data/defaultTimetables";
+import { DAYS_OF_WEEK, DEFAULT_TEACHERS, isSlotMatchingTeacherOrSubject, getEffectiveTimetableForWeek } from "../data/defaultTimetables";
 import { 
   Calendar, 
   UploadCloud, 
@@ -39,6 +39,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
   lang = "en",
 }) => {
   const isEn = lang === "en";
+  const effectiveTimetable = getEffectiveTimetableForWeek(masterTimetable, schoolInfo.week);
 
   const getDayDisplay = (day: string) => {
     if (!isEn) return day;
@@ -78,8 +79,8 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
         DAYS_OF_WEEK.forEach((d) => {
           const key = `${d}_Sáng_${p}`;
           const taught: string[] = [];
-          masterTimetable.classes.forEach((cls) => {
-            const val = (masterTimetable.slots[key]?.[cls] || "").trim();
+          effectiveTimetable.classes.forEach((cls) => {
+            const val = (effectiveTimetable.slots[key]?.[cls] || "").trim();
             if (
               val && val.toUpperCase() !== "HỌP" &&
               (isSlotMatchingTeacherOrSubject(val, selectedTeacher, matchedT?.specialistSubject) ||
@@ -99,13 +100,13 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
         const row = ["Chiều", `Tiết ${p}`];
         DAYS_OF_WEEK.forEach((d) => {
           const key = `${d}_Chiều_${p}`;
-          const isMeeting = masterTimetable.classes.some(
-            (c) => (masterTimetable.slots[key]?.[c] || "").trim().toUpperCase() === "HỌP"
+          const isMeeting = effectiveTimetable.classes.some(
+            (c) => (effectiveTimetable.slots[key]?.[c] || "").trim().toUpperCase() === "HỌP"
           );
 
           const taught: string[] = [];
-          masterTimetable.classes.forEach((cls) => {
-            const val = (masterTimetable.slots[key]?.[cls] || "").trim();
+          effectiveTimetable.classes.forEach((cls) => {
+            const val = (effectiveTimetable.slots[key]?.[cls] || "").trim();
             if (
               val && val.toUpperCase() !== "HỌP" &&
               (isSlotMatchingTeacherOrSubject(val, selectedTeacher, matchedT?.specialistSubject) ||
@@ -145,7 +146,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
       const row = ["Sáng", `Tiết ${p}`];
       DAYS_OF_WEEK.forEach((d) => {
         const key = `${d}_Sáng_${p}`;
-        row.push(masterTimetable.slots[key]?.[selectedClass] || "");
+        row.push(effectiveTimetable.slots[key]?.[selectedClass] || "");
       });
       data.push(row);
     }
@@ -155,7 +156,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
       const row = ["Chiều", `Tiết ${p}`];
       DAYS_OF_WEEK.forEach((d) => {
         const key = `${d}_Chiều_${p}`;
-        row.push(masterTimetable.slots[key]?.[selectedClass] || "");
+        row.push(effectiveTimetable.slots[key]?.[selectedClass] || "");
       });
       data.push(row);
     }
@@ -188,6 +189,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
   // Color helper for subjects with Editorial Aesthetic
   const getSubjectColor = (sub: string) => {
     if (!sub || sub.trim() === "") return "bg-stone-50/50 text-stone-400 border-dashed border-stone-300";
+    if (sub.includes("ATGT") || sub.includes("An toàn giao thông")) return "bg-[#eef8f5] text-emerald-950 border-emerald-800 font-bold";
     if (sub.includes("TV") || sub.includes("Tiếng Việt") || sub.includes("Đọc") || sub.includes("Viết")) return "bg-stone-100 text-black border-black font-bold";
     if (sub.includes("Toán") || sub === "T") return "bg-[#faf7ee] text-stone-900 border-stone-800 font-bold";
     if (sub.includes("HĐTN") || sub.includes("HDTN")) return "bg-[#f4f7f4] text-stone-900 border-stone-700 font-semibold";
@@ -207,11 +209,11 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
   let classPeriodCount = 0;
   DAYS_OF_WEEK.forEach((d) => {
     for (let p = 1; p <= 5; p++) {
-      const v = masterTimetable.slots[`${d}_Sáng_${p}`]?.[selectedClass];
+      const v = effectiveTimetable.slots[`${d}_Sáng_${p}`]?.[selectedClass];
       if (v && v.trim() !== "") classPeriodCount++;
     }
     for (let p = 1; p <= 3; p++) {
-      const v = masterTimetable.slots[`${d}_Chiều_${p}`]?.[selectedClass];
+      const v = effectiveTimetable.slots[`${d}_Chiều_${p}`]?.[selectedClass];
       if (v && v.trim() !== "" && v !== "SHCM") classPeriodCount++;
     }
   });
@@ -274,11 +276,11 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
           <button
             onClick={() => {
               if (viewMode === "teacher") {
-                exportTeacherTimetableDocx(schoolInfo, masterTimetable, selectedTeacher, "portrait");
+                exportTeacherTimetableDocx(schoolInfo, effectiveTimetable, selectedTeacher, "portrait");
               } else if (viewMode === "master") {
-                exportTimetableDocx(schoolInfo, masterTimetable, "all", "landscape");
+                exportTimetableDocx(schoolInfo, effectiveTimetable, "all", "landscape");
               } else {
-                exportTimetableDocx(schoolInfo, masterTimetable, selectedClass, "portrait");
+                exportTimetableDocx(schoolInfo, effectiveTimetable, selectedClass, "portrait");
               }
             }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-black hover:bg-stone-800 text-white text-[10px] font-bold uppercase tracking-widest border border-black shadow-[2px_2px_0px_rgba(0,0,0,0.3)] transition-colors cursor-pointer"
@@ -392,7 +394,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
                     </td>
                     {DAYS_OF_WEEK.map((day) => {
                       const slotKey = `${day}_Sáng_${period}`;
-                      const val = masterTimetable.slots[slotKey]?.[selectedClass] || "";
+                      const val = effectiveTimetable.slots[slotKey]?.[selectedClass] || "";
                       const colorClass = getSubjectColor(val);
 
                       return (
@@ -432,7 +434,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
                     </td>
                     {DAYS_OF_WEEK.map((day) => {
                       const slotKey = `${day}_Chiều_${period}`;
-                      const val = masterTimetable.slots[slotKey]?.[selectedClass] || "";
+                      const val = effectiveTimetable.slots[slotKey]?.[selectedClass] || "";
                       const colorClass = getSubjectColor(val);
 
                       return (
@@ -524,7 +526,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
                             {period}
                           </td>
                           {masterTimetable.classes.map((cls) => {
-                            const val = masterTimetable.slots[slotKey]?.[cls] || "";
+                            const val = effectiveTimetable.slots[slotKey]?.[cls] || "";
                             const colorClass = getSubjectColor(val);
                             return (
                               <td
@@ -556,7 +558,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
                             {period}
                           </td>
                           {masterTimetable.classes.map((cls) => {
-                            const val = masterTimetable.slots[slotKey]?.[cls] || "";
+                            const val = effectiveTimetable.slots[slotKey]?.[cls] || "";
                             const colorClass = getSubjectColor(val);
                             return (
                               <td
@@ -592,8 +594,8 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
         // Helper to find taught classes and subjects for this teacher at a slot
         const getTaughtClasses = (slotKey: string) => {
           const taught: { cls: string; sub: string }[] = [];
-          masterTimetable.classes.forEach((cls) => {
-            const val = (masterTimetable.slots[slotKey]?.[cls] || "").trim();
+          effectiveTimetable.classes.forEach((cls) => {
+            const val = (effectiveTimetable.slots[slotKey]?.[cls] || "").trim();
             if (!val || val === "SHCM") return;
             const lowerVal = val.toLowerCase();
 
@@ -659,7 +661,7 @@ export const TimetableManager: React.FC<TimetableManagerProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => exportTeacherTimetableDocx(schoolInfo, masterTimetable, selectedTeacher, "portrait")}
+                  onClick={() => exportTeacherTimetableDocx(schoolInfo, effectiveTimetable, selectedTeacher, "portrait")}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-black hover:bg-stone-800 text-white text-[10px] font-bold uppercase tracking-wider border border-black shadow-[2px_2px_0px_rgba(0,0,0,0.3)] transition-colors cursor-pointer"
                   title={isEn ? `Download Word A4 Timetable for teacher ${selectedTeacher}` : `Tải Thời khóa biểu Word A4 cho thầy/cô ${selectedTeacher}`}
                 >

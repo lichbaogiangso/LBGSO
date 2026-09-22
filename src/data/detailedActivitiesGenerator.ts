@@ -1,6 +1,7 @@
 import { Grade, LessonActivity } from "../types";
 import { getGrade1DetailedActivities } from "./grade1ActivitiesGenerator";
 import { cleanLessonTitle } from "../utils/lessonTitleHelper";
+import { getATGTGrade5LessonInfo } from "./atgtGrade5Data";
 
 export interface DetailedActivitiesResult {
   specificCompetencies: string[];
@@ -56,6 +57,22 @@ export function getDetailedLessonActivities(params: {
   const subLower = subject.toLowerCase().trim();
   const subSubLower = subSubject.toLowerCase().trim();
   const titleCore = cleanTitle(lessonTitle);
+
+  // 0. AN TOÀN GIAO THÔNG (ATGT) KHỐI 5
+  if (
+    subLower.includes("an toàn giao thông") ||
+    subLower.includes("atgt") ||
+    subSubLower.includes("an toàn giao thông") ||
+    titleCore.toLowerCase().includes("an toàn giao thông")
+  ) {
+    const atgt = getATGTGrade5LessonInfo(week);
+    return {
+      specificCompetencies: atgt.specificCompetencies,
+      teacherMaterials: atgt.teacherMaterials,
+      studentMaterials: atgt.studentMaterials,
+      activities: atgt.activities,
+    };
+  }
 
   // =========================================================================
   // 1. MÔN TOÁN (MATHEMATICS) - Khối 1 đến Khối 5

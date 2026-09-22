@@ -15,7 +15,7 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import { LessonPlan, ScheduleItem, SchoolInfo, MasterTimetable } from "../types";
-import { DAYS_OF_WEEK, DEFAULT_TEACHERS, TeacherInfo, isSlotMatchingTeacherOrSubject, getWeekDates } from "../data/defaultTimetables";
+import { DAYS_OF_WEEK, DEFAULT_TEACHERS, TeacherInfo, isSlotMatchingTeacherOrSubject, getWeekDates, getEffectiveTimetableForWeek } from "../data/defaultTimetables";
 import { cleanLessonTitle } from "./lessonTitleHelper";
 import JSZip from "jszip";
 import { getScheduleAndPlansForTeacher } from "./teacherScheduleHelper";
@@ -197,6 +197,7 @@ export async function buildTimetableDocxBlob(
   const cls = targetClass || schoolInfo.className;
   const isLandscape = orientation === "landscape";
   const tableWidth = isLandscape ? 14500 : 9400;
+  const effectiveMaster = getEffectiveTimetableForWeek(masterTimetable, schoolInfo.week);
 
   // Header rows
   const tableRows: TableRow[] = [];
@@ -284,7 +285,7 @@ export async function buildTimetableDocxBlob(
 
     DAYS_OF_WEEK.forEach((day, dIdx) => {
       const slotKey = `${day}_Sáng_${p}`;
-      const subject = masterTimetable.slots[slotKey]?.[cls] || "—";
+      const subject = effectiveMaster.slots[slotKey]?.[cls] || "—";
       const isBold = subject !== "—" && !subject.includes("(");
 
       cells.push(
@@ -347,7 +348,7 @@ export async function buildTimetableDocxBlob(
 
     DAYS_OF_WEEK.forEach((day, dIdx) => {
       const slotKey = `${day}_Chiều_${p}`;
-      const subject = masterTimetable.slots[slotKey]?.[cls] || "—";
+      const subject = effectiveMaster.slots[slotKey]?.[cls] || "—";
       const isBold = subject !== "—" && !subject.includes("(");
 
       cells.push(
@@ -544,8 +545,10 @@ export function formatTeacherSubjectClean(raw: string): string {
   if (!raw) return "";
   let s = raw.replace(/\s*\([^)]*\)/g, "").trim();
   const upper = s.toUpperCase();
+  if (upper === "ATGT") return "An toàn giao thông";
   if (upper === "MT") return "Mĩ thuật";
   if (upper === "HĐTN") return "HĐTN";
+  if (upper === "HĐTN (SHL)" || raw.includes("SHL")) return "HĐTN (Sinh hoạt lớp)";
   if (upper === "TV") return "Tiếng Việt";
   if (upper === "T") return "Toán";
   if (upper === "AN") return "Âm nhạc";
@@ -581,6 +584,7 @@ export async function buildTeacherTimetableDocxBlob(
 
   const isLandscape = orientation === "landscape";
   const tableWidth = isLandscape ? 14500 : 9400;
+  const effectiveMaster = getEffectiveTimetableForWeek(masterTimetable, schoolInfo.week);
 
   // Find teacher info
   const matchedTeacher = DEFAULT_TEACHERS.find((t) => t.name === teacherName);
@@ -635,8 +639,8 @@ export async function buildTeacherTimetableDocxBlob(
   // Helper to find taught classes & subjects for this teacher at a slot
   const getTeacherClassesForSlot = (slotKey: string, day: string, session: string, period: number) => {
     const taught: { cls: string; sub: string }[] = [];
-    masterTimetable.classes.forEach((cls) => {
-      const val = (masterTimetable.slots[slotKey]?.[cls] || "").trim();
+    effectiveMaster.classes.forEach((cls) => {
+      const val = (effectiveMaster.slots[slotKey]?.[cls] || "").trim();
       if (!val || val.toUpperCase() === "HỌP") return;
       if (
         isSlotMatchingTeacherOrSubject(val, teacherName, specialistSubject) ||
@@ -780,8 +784,8 @@ export async function buildTeacherTimetableDocxBlob(
       const taught = getTeacherClassesForSlot(slotKey, day, "Chiều", p);
 
       // Check if slot is school-wide meeting (e.g. Thứ Sáu Chiều 1)
-      const isMeeting = masterTimetable.classes.some(
-        (c) => (masterTimetable.slots[slotKey]?.[c] || "").trim().toUpperCase() === "HỌP"
+      const isMeeting = effectiveMaster.classes.some(
+        (c) => (effectiveMaster.slots[slotKey]?.[c] || "").trim().toUpperCase() === "HỌP"
       );
 
       const paragraphs: Paragraph[] = [];
@@ -1541,7 +1545,7 @@ export async function exportLessonPlansDocx(
     // Lesson Period Banner in exact TKB order
     // Lesson Period Banner in compact form
     const classTag = plan.className ? ` [Lớp ${plan.className}]` : (schoolInfo.className ? ` [Lớp ${schoolInfo.className}]` : "");
-    const subSubjectPart = plan.subSubject ? ` (${plan.subSubject.toUpperCase()})` : "";
+    const subSubjectPart = plan.subSubject && plan.subSubject.trim().toUpperCase() !== plan.subject.trim().toUpperCase() ? ` (${plan.subSubject.toUpperCase()})` : "";
     docChildren.push(
       new Paragraph({
         spacing: { before: 100, after: 40 },
@@ -1851,6 +1855,7 @@ export async function exportCombinedAllInOneDocx(
   const tableWidth = 9400;
   const colHalfWidth = 4700;
   const cls = schoolInfo.className;
+  const effectiveMaster = getEffectiveTimetableForWeek(masterTimetable, schoolInfo.week);
 
   const docChildren: any[] = [];
 
@@ -1926,7 +1931,7 @@ export async function exportCombinedAllInOneDocx(
     }
     cells.push(new TableCell({ width: { size: tkbColWidths[1], type: WidthType.DXA }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(p), bold: true, font, size: baseSize })] })] }));
     DAYS_OF_WEEK.forEach((d, di) => {
-      const subject = masterTimetable.slots[`${d}_Sáng_${p}`]?.[cls] || "—";
+      const subject = effectiveMaster.slots[`${d}_Sáng_${p}`]?.[cls] || "—";
       cells.push(new TableCell({ width: { size: tkbColWidths[2 + di], type: WidthType.DXA }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: subject, bold: subject !== "—", font, size: baseSize })] })] }));
     });
     tkbRows.push(new TableRow({ children: cells }));
@@ -1939,7 +1944,7 @@ export async function exportCombinedAllInOneDocx(
     }
     cells.push(new TableCell({ width: { size: tkbColWidths[1], type: WidthType.DXA }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(p), bold: true, font, size: baseSize })] })] }));
     DAYS_OF_WEEK.forEach((d, di) => {
-      const subject = masterTimetable.slots[`${d}_Chiều_${p}`]?.[cls] || "—";
+      const subject = effectiveMaster.slots[`${d}_Chiều_${p}`]?.[cls] || "—";
       cells.push(new TableCell({ width: { size: tkbColWidths[2 + di], type: WidthType.DXA }, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: subject, bold: subject !== "—", font, size: baseSize })] })] }));
     });
     tkbRows.push(new TableRow({ children: cells }));
@@ -2041,7 +2046,7 @@ export async function exportCombinedAllInOneDocx(
     }
 
     const classTag = plan.className ? ` [Lớp ${plan.className}]` : (schoolInfo.className ? ` [Lớp ${schoolInfo.className}]` : "");
-    const subSubjectPart = plan.subSubject ? ` (${plan.subSubject.toUpperCase()})` : "";
+    const subSubjectPart = plan.subSubject && plan.subSubject.trim().toUpperCase() !== plan.subject.trim().toUpperCase() ? ` (${plan.subSubject.toUpperCase()})` : "";
     docChildren.push(
       new Paragraph({
         spacing: { before: 100, after: 40 },
@@ -2556,7 +2561,7 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
 
       // Lesson Header (Bỏ tiết mấy TKB buổi sáng theo yêu cầu người dùng)
       const classTag = plan.className ? ` [Lớp ${plan.className}]` : (schoolInfo.className ? ` [Lớp ${schoolInfo.className}]` : "");
-      const subSubjectPart = plan.subSubject ? ` (${plan.subSubject.toUpperCase()})` : "";
+      const subSubjectPart = plan.subSubject && plan.subSubject.trim().toUpperCase() !== plan.subject.trim().toUpperCase() ? ` (${plan.subSubject.toUpperCase()})` : "";
       docChildren.push(
         new Paragraph({
           spacing: { before: 100, after: 40 },
