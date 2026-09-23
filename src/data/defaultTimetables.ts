@@ -89,8 +89,8 @@ export const TIMETABLE_TUAN_1_SLOTS: Record<string, Record<string, string>> = {
   "Thứ Sáu_Sáng_1": { "1A": "TV", "1B": "TCT (Phước)", "2A": "TV", "2B": "T", "3A": "TV", "3B": "TA (Nương)", "4A": "TV", "4B": "GDTC (Thịnh)", "5A": "BDAN (Tâm)", "5B": "TV" },
   "Thứ Sáu_Sáng_2": { "1A": "TV", "1B": "GDTC (Thịnh)", "2A": "TV", "2B": "TV", "3A": "T", "3B": "T", "4A": "T", "4B": "TV", "5A": "TV", "5B": "TA (Nương)" },
   "Thứ Sáu_Sáng_3": { "1A": "T", "1B": "TV", "2A": "TCT (Phước)", "2B": "TV", "3A": "TCTV", "3B": "TV", "4A": "TA (Nương)", "4B": "T", "5A": "T", "5B": "T" },
-  "Thứ Sáu_Sáng_4": { "1A": "HĐTN (SHL)", "1B": "HĐTN (SHL)", "2A": "HĐTN (SHL)", "2B": "HĐTN (SHL)", "3A": "HĐTN (SHL)", "3B": "HĐTN (SHL)", "4A": "HĐTN (SHL)", "4B": "HĐTN (SHL)", "5A": "HĐTN (SHL)", "5B": "HĐTN (SHL)" },
-  "Thứ Sáu_Sáng_5": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "", "5B": "" },
+  "Thứ Sáu_Sáng_4": { "1A": "HĐTN (SHL)", "1B": "HĐTN (SHL)", "2A": "HĐTN (SHL)", "2B": "HĐTN (SHL)", "3A": "HĐTN (SHL)", "3B": "HĐTN (SHL)", "4A": "HĐTN (SHL)", "4B": "HĐTN (SHL)", "5A": "ATGT", "5B": "ATGT" },
+  "Thứ Sáu_Sáng_5": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "HĐTN (SHL)", "5B": "HĐTN (SHL)" },
 
   "Thứ Sáu_Chiều_1": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "", "5B": "" },
   "Thứ Sáu_Chiều_2": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "", "5B": "" },
@@ -150,8 +150,8 @@ export const TIMETABLE_TUAN_2_SLOTS: Record<string, Record<string, string>> = {
   "Thứ Sáu_Sáng_1": { "1A": "TV", "1B": "GDTC (Thịnh)", "2A": "TV", "2B": "TV", "3A": "TV", "3B": "TV", "4A": "TV", "4B": "HĐTN (Thy)", "5A": "TA (Nương)", "5B": "TV" },
   "Thứ Sáu_Sáng_2": { "1A": "TV", "1B": "TV", "2A": "TV", "2B": "TV", "3A": "T", "3B": "GDTC (Thịnh)", "4A": "TA (Nương)", "4B": "TV", "5A": "TV", "5B": "T" },
   "Thứ Sáu_Sáng_3": { "1A": "T", "1B": "TV", "2A": "T", "2B": "T", "3A": "TA (Nương)", "3B": "T", "4A": "T", "4B": "T", "5A": "T", "5B": "GDTC (Thịnh)" },
-  "Thứ Sáu_Sáng_4": { "1A": "HĐTN (SHL)", "1B": "HĐTN (SHL)", "2A": "HĐTN (SHL)", "2B": "HĐTN (SHL)", "3A": "HĐTN (SHL)", "3B": "HĐTN (SHL)", "4A": "HĐTN (SHL)", "4B": "HĐTN (SHL)", "5A": "HĐTN (SHL)", "5B": "HĐTN (SHL)" },
-  "Thứ Sáu_Sáng_5": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "", "5B": "" },
+  "Thứ Sáu_Sáng_4": { "1A": "HĐTN (SHL)", "1B": "HĐTN (SHL)", "2A": "HĐTN (SHL)", "2B": "HĐTN (SHL)", "3A": "HĐTN (SHL)", "3B": "HĐTN (SHL)", "4A": "HĐTN (SHL)", "4B": "HĐTN (SHL)", "5A": "ATGT", "5B": "ATGT" },
+  "Thứ Sáu_Sáng_5": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "HĐTN (SHL)", "5B": "HĐTN (SHL)" },
 
   "Thứ Sáu_Chiều_1": { "1A": "HỌP", "1B": "HỌP", "2A": "HỌP", "2B": "HỌP", "3A": "HỌP", "3B": "HỌP", "4A": "HỌP", "4B": "HỌP", "5A": "HỌP", "5B": "HỌP" },
   "Thứ Sáu_Chiều_2": { "1A": "", "1B": "", "2A": "", "2B": "", "3A": "", "3B": "", "4A": "", "4B": "", "5A": "", "5B": "" },
@@ -297,7 +297,7 @@ export function isSlotMatchingTeacherOrSubject(
     return lowerCell.includes("(thịnh)") || lowerCell.includes("thịnh");
   }
   if (lowerName.includes("nương")) {
-    return lowerCell.includes("(nương)") || lowerCell.includes("nương");
+    return lowerCell.includes("(nương)") || lowerCell.includes("nương") || lowerCell === "ta" || lowerCell.startsWith("ta ") || lowerCell.includes("tiếng anh") || lowerCell.includes("english");
   }
   if (lowerName.includes("phương")) {
     return lowerCell.includes("(phương)") || lowerCell.includes("phương");
@@ -306,7 +306,7 @@ export function isSlotMatchingTeacherOrSubject(
     return lowerCell.includes("(thy)") || lowerCell.includes("thy");
   }
   if (lowerName.includes("tâm")) {
-    return lowerCell.includes("(tâm)") || lowerCell.includes("tâm");
+    return lowerCell.includes("(tâm)") || lowerCell.includes("tâm") || lowerCell === "an" || lowerCell.startsWith("an ") || lowerCell.includes("âm nhạc") || lowerCell.includes("bdan");
   }
   if (lowerName.includes("phước")) {
     return lowerCell.includes("(phước)") || lowerCell.includes("phước");
@@ -328,7 +328,7 @@ export function isSlotMatchingTeacherOrSubject(
       return lowerCell.includes("th (phương)") || lowerCell.includes("tin học") || lowerCell.includes("t.học") || lowerCell.includes("th");
     }
     if (sSub.includes("âm nhạc")) {
-      return lowerCell.includes("an (tâm)") || lowerCell.includes("bdan (tâm)") || lowerCell.includes("âm nhạc") || lowerCell.includes("an");
+      return lowerCell.includes("an (tâm)") || lowerCell.includes("bdan (tâm)") || lowerCell.includes("âm nhạc") || lowerCell.includes("an") || lowerCell.includes("bdan");
     }
     if (sSub.includes("mĩ thuật") || sSub.includes("mỹ thuật")) {
       return lowerCell.includes("mt (thy)") || lowerCell.includes("mĩ thuật") || lowerCell.includes("mt") || lowerCell.includes("(thy)");
@@ -358,14 +358,14 @@ export function getEffectiveTimetableForWeek(
   master: MasterTimetable,
   week: number = 1
 ): MasterTimetable {
-  if (week < 3 || !master || !master.slots) return master;
+  if (!master || !master.slots) return master;
 
   const newSlots: Record<string, Record<string, string>> = {};
   for (const [key, val] of Object.entries(master.slots)) {
     newSlots[key] = { ...val };
   }
 
-  // Khối 5 từ Tuần 3: Tiết 4 Thứ Sáu là ATGT, Tiết 5 Thứ Sáu là HĐTN (SHL)
+  // Khối 5: Tiết 4 Thứ Sáu là ATGT (dạy 15 phút), Tiết 5 Thứ Sáu là HĐTN (SHL)
   if (newSlots["Thứ Sáu_Sáng_4"]) {
     newSlots["Thứ Sáu_Sáng_4"] = {
       ...newSlots["Thứ Sáu_Sáng_4"],
@@ -750,14 +750,31 @@ export function mapRawSubjectToScheduleItem(
     note = "PHT: Phan Ngọc Quan";
   }
 
+  // 1b. AN TOÀN GIAO THÔNG (ATGT) - LỚP 5
+  if (
+    clean === "ATGT" ||
+    clean.startsWith("ATGT") ||
+    clean.toUpperCase().includes("ATGT") ||
+    clean.toLowerCase().includes("an toàn giao thông")
+  ) {
+    subject = "AN TOÀN GIAO THÔNG";
+    subSubject = "Giáo dục An toàn giao thông";
+    if (!note) note = "Tiết học 15 phút kết hợp SHL";
+    const atgtInfo = getATGTGrade5LessonInfo(week);
+    lessonTitle = atgtInfo.lessonTitle;
+    curriculumPeriod = atgtInfo.curriculumPeriod;
+    integrationNotes = "Giáo dục văn hóa giao thông, kĩ năng an toàn khi đi đường & điều khiển xe";
+  }
+
   // 2. TIẾNG ANH (TA)
-  if ((clean.includes("TA") || clean.includes("Anh văn") || clean.includes("Tiếng Anh")) && !clean.includes("HĐTN") && !clean.includes("HDTN")) {
+  else if ((clean.includes("TA") || clean.includes("Anh văn") || clean.includes("Tiếng Anh")) && !clean.includes("HĐTN") && !clean.includes("HDTN")) {
     subject = `TIẾNG ANH ${gradeNum}`;
     if (!note) note = "GV Chuyên: Cô Nương";
     const pInW = subjectPeriodInWeek || ((period % 4) + 1);
-    const englishDetail = getDetailedEnglishLesson(gradeNum, week, undefined, pInW);
+    const pYear = (week - 1) * 4 + ((pInW - 1) % 4) + 1;
+    const englishDetail = getDetailedEnglishLesson(gradeNum, week, undefined, pInW, pYear);
     lessonTitle = englishDetail.lessonTitle;
-    curriculumPeriod = (week - 1) * 4 + ((pInW - 1) % 4) + 1;
+    curriculumPeriod = pYear;
     integrationNotes = englishDetail.integrationNotes;
   }
 

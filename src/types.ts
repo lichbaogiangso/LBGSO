@@ -60,12 +60,29 @@ export interface ScheduleItem {
   className: string;
 }
 
+export interface LessonIllustration {
+  id: string;
+  caption: string; // e.g. "Hình ảnh 1: Tranh khởi động SGK Tiếng Việt 1 - Bài 6 (Âm O, dấu hỏi)"
+  imageUrl?: string; // Data URL (data:image/png;base64,...)
+  svgData?: string;
+  svg?: string; // Raw SVG XML string
+  description?: string; // Detailed pedagogical description of the textbook visual
+  category?: string; // sgk | reading | math | traffic | other
+  altText?: string;
+  width?: number;
+  height?: number;
+  pageNumber?: number | string;
+  title?: string;
+  subject?: "tieng-viet" | "toan" | "other" | string;
+}
+
 export interface LessonActivity {
   id?: string;
   name: string; // 1. Khởi động, 2. Khám phá, 3. Luyện tập, 4. Vận dụng
   objective?: string; // Mục tiêu (không bắt buộc ghi vào từng hoạt động theo yêu cầu chuẩn)
   teacherActivity: string; // Hoạt động của giáo viên (cột 1)
   studentActivity: string; // Hoạt động của học sinh (cột 2)
+  illustrations?: LessonIllustration[]; // Tranh minh họa SGK đi kèm hoạt động
 }
 
 export interface LessonPlan {

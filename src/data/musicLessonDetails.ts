@@ -1,4 +1,5 @@
 import { Grade, LessonActivity } from "../types";
+import { getOfficialMusicWeek, OfficialMusicWeek, ALL_GRADES_MUSIC_CURRICULUM } from "./musicCurriculumData";
 
 export interface MusicLessonDetail {
   songTitle: string;
@@ -12,439 +13,94 @@ export interface MusicLessonDetail {
   activities: LessonActivity[];
 }
 
-// Master Song Database by Grade & Cycle/Week
-interface SongMasterInfo {
+export interface SongMasterInfo {
   songTitle: string;
   composer: string;
-  origin?: string;
-  lyrics: string;
   mainTheme: string;
+  timeSignature: "2/4" | "3/4" | "4/4";
+  tempo: string;
+  lyrics: string;
 }
 
+// Legacy exports preserved for full compatibility
 export const GRADE_1_SONGS: SongMasterInfo[] = [
   {
-    songTitle: "Tiếng trống trường em",
-    composer: "Hà Hải",
-    lyrics: `Có cái trống trường
-Quả thật là to
-Tiếng kêu tròn vo
-Tùng tùng tùng tùng!
-
-Vào năm học mới
-Rộn rã từng bừng
-Tiếng trống giục giã
-Mau mau đến trường.
-
-Tùng tùng tùng tùng!
-Tùng tùng tùng tùng!`,
-    mainTheme: "Chủ đề 1: Đón chào năm học mới"
-  },
-  {
-    songTitle: "Múa đàn",
-    composer: "Việt Anh (lời)",
-    origin: "Dân ca Thái",
-    lyrics: `Tình bằng có cánh con chim bay
-Bay từ cửa sổ bay ra
-Tình bằng có cánh con chim bay
-Bay từ cửa sổ bay qua.
-
-Tay cầm đàn em múa vui
-Múa cho đôi chân nhịp nhàng
-Tay cầm đàn em múa vui
-Múa cho tiếng cười vang lừng.`,
-    mainTheme: "Chủ đề 2: Giai điệu bạn bè quê hương"
-  },
-  {
-    songTitle: "Tìm bạn thân",
+    songTitle: "Vào rừng hoa",
     composer: "Việt Anh",
-    lyrics: `Nào ai ngoan ai xinh ai tươi
-Nào ai yêu những đóa hoa xinh
-Mau bước tới đây cùng nắm tay nhau
-Cùng hát vui múa ca theo nhịp.
-
-Nào ai ngoan ai xinh ai tươi
-Cùng nhau ta kết đoàn thân ái
-Nào ai ngoan ai xinh ai tươi
-Mãi mãi là bạn thân của nhau.`,
-    mainTheme: "Chủ đề 3: Tình bạn tuổi thơ"
-  },
-  {
-    songTitle: "Đàn gà con",
-    composer: "Việt Anh (lời)",
-    origin: "Nhạc Nga",
-    lyrics: `Trông kìa đàn gà con lông vàng
-Đi theo mẹ tìm ăn trong vườn
-Cùng tìm mồi ăn ngon ngon
-Đàn gà con đi lon ton.
-
-Thóc vãi rồi nhặt ăn cho nhiều
-Uống nước vào là no căng diều
-Rồi cùng nhau ta đi chơi
-Đàn gà con xinh kia ơi.`,
-    mainTheme: "Chủ đề 4: Thế giới loài vật đáng yêu"
-  },
-  {
-    songTitle: "Bầu trời xanh",
-    composer: "Nguyễn Văn Quỳ",
-    lyrics: `Em yêu bầu trời xanh xanh
-Yêu đàn bồ câu trắng trắng
-Em yêu bầu trời xanh xanh
-Bồ câu tung cánh lượn bay.
-
-Bầu trời xanh hòa bình tự do
-Đàn em thơ rộn ràng tiếng hát
-Bầu trời xanh hòa bình tự do
-Tiếng cười rộn rã muôn nơi.`,
-    mainTheme: "Chủ đề 5: Ước mơ hòa bình"
-  },
-  {
-    songTitle: "Lí cây xanh",
-    composer: "Việt Anh (đặt lời)",
-    origin: "Dân ca Nam Bộ",
-    lyrics: `Cái cây xanh xanh
-Thì lá cũng xanh
-Chim đậu trên cành
-Chim hót líu lo.
-
-Líu lo là líu lo
-Líu lo là líu lo
-Cái cây xanh xanh
-Rợp bóng sân trường.`,
-    mainTheme: "Chủ đề 6: Thiên nhiên tươi đẹp"
+    mainTheme: "Âm thanh kì diệu",
+    timeSignature: "2/4",
+    tempo: "Vừa phải, vui tươi",
+    lyrics: `Cầm tay nhau cùng đi chơi, giao đàn hoa thơm ngát hương bay.
+Hoa màu xanh, hoa màu đỏ, hoa màu vàng, hoa màu tím.
+Kìa hoa sim, kìa hoa lan, kìa hoa huệ trắng tinh.
+Vào rừng hoa cùng chơi, vui tươi rộn rã bước chân.`
   }
 ];
 
 export const GRADE_2_SONGS: SongMasterInfo[] = [
   {
-    songTitle: "Dàn nhạc mùa hè",
-    composer: "Lê Minh Châu",
-    lyrics: `Kìa ve ve ve
-Rộn rã tiếng ca
-Hè về rộn vang trên vòm cây xanh.
-
-Tiếng ve ngân vang
-Như muôn lời ca
-Dàn nhạc mùa hè vui sao là vui.
-
-Ve ve ve ve
-Rộn ràng khắp nơi
-Ve ve ve ve
-Báo hiệu hè sang.`,
-    mainTheme: "Chủ đề 1: Mùa hè rực rỡ & Khai trường"
-  },
-  {
-    songTitle: "Ngày mùa vui",
-    composer: "Hoàng Lân (lời mới)",
-    origin: "Dân ca Thái",
-    lyrics: `Ngoài đồng lúa chín thơm
-Con chim hót trong vườn
-Nô nức trên đường vui thay
-Bõ công bao ngày chờ mong.
-
-Gánh về sân phơi
-Thóc vàng ngập lối
-Hát mừng ngày mùa
-No ấm quê hương.
-
-Gánh về sân phơi
-Thóc vàng ngập lối
-Hát mừng ngày mùa
-No ấm muôn nhà.`,
-    mainTheme: "Chủ đề 2: Em yêu lao động quê hương"
-  },
-  {
-    songTitle: "Thật là hay",
-    composer: "Hoàng Lân",
-    lyrics: `Nghe véo von trong vòm cây
-Họa mi với sơn ca
-Hai chú chim cao giọng hót
-Hót líu lo vang lừng lừng.
-
-Vui rất vui bay từ xa
-Khắp vườn hoa đua nở
-Nghe véo von chim cùng ca
-Thật là hay hay hay.`,
-    mainTheme: "Chủ đề 3: Tiếng hót muôn loài"
-  },
-  {
-    songTitle: "Mẹ đi vắng",
-    composer: "Trịnh Công Sơn (nhạc) - Nguyễn Duy (thơ)",
-    lyrics: `Mẹ đi vắng, mẹ đi vắng
-Con sang chơi nhà bạn
-Con cầm cây đàn con hát
-Con hát bài con nhớ mẹ.
-
-Mẹ đi vắng, mẹ đi vắng
-Con sang chơi nhà bạn
-Con cầm cây đàn con hát
-Hát cho vui cả ngày.`,
-    mainTheme: "Chủ đề 4: Tình cảm gia đình"
-  },
-  {
-    songTitle: "Hoa lá mùa xuân",
-    composer: "Hoàng Nguyễn",
-    lyrics: `Tôi là lá, tôi là hoa
-Tôi là hoa lá hoa mùa xuân
-Tôi cùng hát, tôi cùng múa
-Tôi cùng múa hát ca mừng xuân.
-
-Xuân vừa đến trên cành cao
-Cho ngàn hoa hé môi cười vui
-Xuân rộn rã muôn lời ca
-Đón chào xuân khắp nơi tươi đẹp.`,
-    mainTheme: "Chủ đề 5: Mùa xuân của em"
+    songTitle: "Dàn nhạc trong vườn",
+    composer: "Tô Đông Hải",
+    mainTheme: "Sắc màu âm thanh",
+    timeSignature: "2/4",
+    tempo: "Vui tươi, rộn rã",
+    lyrics: `Kìa con chim gáy cúc cu đố la, kìa chú vàng anh líu lo lá son.
+Kìa chim chích chòe, chích chòe lá đa, một dàn nhạc chim líu lo trong vườn!`
   }
 ];
 
 export const GRADE_3_SONGS: SongMasterInfo[] = [
   {
-    songTitle: "Quốc ca Việt Nam (Tiến quân ca)",
-    composer: "Văn Cao",
-    lyrics: `Đoàn quân Việt Nam đi
-Chung lòng cứu quốc
-Bước chân dồn vang trên đường gập ghềnh xa.
-
-Cờ in máu chiến thắng mang hồn nước
-Súng ngoài xa chen khúc quân hành ca.
-
-Đường vinh quang xây xác quân thù
-Thắng gian lao cùng nhau lập chiến khu.
-
-Vì nhân dân chiến đấu không ngừng
-Tiến mau ra sa trường
-Tiến lên! Cùng tiến lên!
-Nước non Việt Nam ta vững bền.`,
-    mainTheme: "Chủ đề 1: Tự hào Tổ quốc Việt Nam"
-  },
-  {
-    songTitle: "Em yêu trường em",
-    composer: "Hoàng Vân",
-    lyrics: `Em yêu trường em
-Với bao bạn thân
-Và cô giáo hiền
-Như yêu quê hương
-Cắp sách đến trường trong muôn vàn tình thân yêu.
-
-Nào bàn nào ghế, nào sách nào vở
-Nào mực nào bút, nào phấn nào bảng
-Cả tiếng chim vui trên cành cây cao
-Cả lá cờ sao trong nắng thu vàng.
-
-Yêu sao yêu thế
-Trường của chúng em!`,
-    mainTheme: "Chủ đề 2: Mái trường mến yêu"
-  },
-  {
-    songTitle: "Bài ca đi học",
-    composer: "Phan Trần Bảng",
-    lyrics: `Bình minh dâng lên ánh trên giọt sương long lanh
-Đàn bướm phơi phới lượn trên cành hoa rung rinh.
-Bầy chim hót líu lo từng bầy
-Bước tung tăng em tới trường.
-
-Đường tới lớp có bao điều vui
-Bao lời cô giảng như suối ngọt lành
-Em chăm học, em vâng lời
-Tương lai tươi sáng đang chờ em.`,
-    mainTheme: "Chủ đề 3: Niềm vui tới trường"
-  },
-  {
-    songTitle: "Đếm sao",
-    composer: "Văn Chung",
-    lyrics: `Một ông sao sáng, hai ông sáng sao
-Ba ông sao sáng, sáng chiếu muôn ánh vàng.
-Bốn ông sáng sao, năm ông sao sáng
-Sáu ông sáng sao trên trời cao.
-
-Bảy ông sao sáng, tám ông sáng sao
-Chín ông sao sáng, sáng lấp lánh bầu trời.
-Ngước nhìn lên muôn vì sao
-Em mơ bay tới những vì sao xa.`,
-    mainTheme: "Chủ đề 4: Khám phá bầu trời đêm"
-  },
-  {
-    songTitle: "Gà gáy",
-    composer: "Huy Trân (lời mới)",
-    origin: "Dân ca Cống (Lai Châu)",
-    lyrics: `Cúc cù cu cu, gà gáy le te
-Trời đã rạng rồi, mau dậy bà con ơi!
-Mau dậy thôi, gà gáy le te
-Trời đã sáng rồi, cùng nhau ra nương.
-
-Nương rẫy xanh xanh rộn vang tiếng cười
-Đón ánh bình minh chiếu soi buôn làng
-Cúc cù cu cu, tiếng gà giục giã
-Một ngày mới tươi vui bắt đầu.`,
-    mainTheme: "Chủ đề 5: Âm vang miền núi non"
+    songTitle: "Múa lân",
+    composer: "Lê Cao Phan",
+    mainTheme: "Lễ hội âm thanh",
+    timeSignature: "2/4",
+    tempo: "Rộn ràng, vui tươi",
+    lyrics: `Thùng thình thùng thình cắc tùng thình thình, múa lân đón rằm tháng Tám.
+Chú Cuội chơi trăng cùng bé thơ, tùng rinh rinh tiếng trống rộn vang!`
   }
 ];
 
 export const GRADE_4_SONGS: SongMasterInfo[] = [
   {
-    songTitle: "Khăn quàng thắm mãi vai em",
-    composer: "Ngô Ngọc Báu",
-    lyrics: `Khi trông phương đông vừa hé ánh dương
-Khăn quàng trên vai rộn rã bước chân.
-Đàn chim líu lo hót vang lừng
-Em bước nhanh tới trường thân yêu.
-
-Đỏ thắm khăn quàng trên vai em
-Như ngọn cờ sao rực rỡ tươi màu.
-Ghi sâu lời Bác kính yêu
-Chăm ngoan học tập tiến lên Đội viên.`,
-    mainTheme: "Chủ đề 1: Đội viên sẵn sàng"
-  },
-  {
-    songTitle: "Em bay trong đêm pháo hoa",
-    composer: "Hàn Ngọc Bích",
-    lyrics: `Bay lên nào em bay lên nào
-Trong đêm pháo hoa rực rỡ muôn màu.
-Đêm nay vui sao bao ước mơ đẹp tươi
-Như ánh sao lung linh trên trời.
-
-Đất nước đón xuân sang tưng bừng
-Khúc hát ca ngợi quê hương thanh bình.
-Cùng nắm tay bay trong pháo hoa
-Tương lai sáng ngời đón chờ chúng em.`,
-    mainTheme: "Chủ đề 2: Đất nước ngày hội"
-  },
-  {
-    songTitle: "Bạn ơi lắng nghe",
-    composer: "Tô Ngọc Thanh (sưu tầm & dịch lời)",
-    origin: "Dân ca Ba-na",
-    lyrics: `Hỡi bạn ơi cùng nhau lắng nghe
-Tiếng dòng suối ngoài xa reo vui.
-Tiếng đàn cá đùa vui tung tăng
-Ngắm nhìn dòng nước trong veo.
-
-Hỡi bạn ơi cùng nghe tiếng sóng
-Tiếng rừng reo thì thào bên tai.
-Thiên nhiên tươi đẹp biết bao
-Mau bước cùng nhau ta giữ gìn.`,
-    mainTheme: "Chủ đề 3: Tiếng hát đại ngàn Tây Nguyên"
-  },
-  {
-    songTitle: "Trên ngựa ta phi nhanh",
-    composer: "Phong Nhã",
-    lyrics: `Trên đường gập ghềnh ngựa phi nhanh nhanh nhanh
-Vó câu rộn vang khắp núi ngàn xanh.
-Gió reo rộn ràng muôn cánh hoa
-Ngựa phi nhanh nhanh tới chân trời xa.
-
-Nhong nhong nhong, nhong nhong nhong
-Ngựa ta phi nhanh qua dốc qua đèo.
-Tiếng cười rộn rã trên lưng ngựa hiền
-Tiến bước tương lai xây đời tự do.`,
-    mainTheme: "Chủ đề 4: Hành trình tuổi thơ"
-  },
-  {
-    songTitle: "Cò lả",
-    composer: "Quan họ Bắc Ninh (sưu tầm)",
-    origin: "Dân ca đồng bằng Bắc Bộ",
-    lyrics: `Con cò cò bay lả lả bay la
-Bay từ từ cửa phủ bay ra ra cánh đồng.
-Tình tính tang tang tính tình
-Cô mình rằng cô mình ơi.
-
-Rằng có biết biết hay chăng
-Rằng có nhớ nhớ hay chăng
-Cánh cò trắng phau phau
-Dập dìu trên sóng lúa vàng.`,
-    mainTheme: "Chủ đề 5: Nét đẹp dân ca đồng bằng"
+    songTitle: "Chuông gió leng keng",
+    composer: "Lê Vinh Phúc",
+    mainTheme: "Âm thanh ngày mới",
+    timeSignature: "2/4",
+    tempo: "Nhẹ nhàng, trong sáng",
+    lyrics: `Kìa chuông gió leng keng leng keng, gió reo vui đùa khúc nhạc êm đềm.
+Hòa cùng nắng sớm đón chào ngày mới, cho muôn nụ cười rạng rỡ trên môi.`
   }
 ];
 
 export const GRADE_5_SONGS: SongMasterInfo[] = [
   {
-    songTitle: "Reo vang bình minh",
-    composer: "Lưu Hữu Phước",
-    lyrics: `Reo vang reo ca vang ca
-Cất tiếng hát đón ánh bình minh tươi sáng.
-Say sưa say trong muôn hoa
-Đón nắng mới chiếu sáng khắp muôn nơi.
-
-La la la la la, la la la la la
-Vang lừng tiếng chim ca vui tươi.
-Đường dài tươi sáng đón chờ em
-Bước vững vàng tiến bước vào tương lai.`,
-    mainTheme: "Chủ đề 1: Chào ngày mới tương lai sáng ngời"
-  },
-  {
-    songTitle: "Hãy giữ cho em bầu trời xanh",
-    composer: "Huy Trân",
-    lyrics: `Hãy xua tan những mây mù đen tối
-Để bầu trời luôn xanh ngát bao la.
-Cho bầy chim hót trong bình minh
-Cho đàn em thơ ca múa hòa bình.
-
-Bay cao tiếng hát giữa trời tự do
-Lời ca thiết tha gửi tới năm châu.
-Hãy giữ cho em bầu trời xanh tươi
-Cho trái đất mãi mãi nụ cười xinh.`,
-    mainTheme: "Chủ đề 2: Hòa bình cho trẻ thơ"
-  },
-  {
-    songTitle: "Con chim non",
-    composer: "Lời Việt: Phong Nhã",
-    origin: "Dân ca Pháp",
-    lyrics: `Bình minh lên có con chim non
-Hót líu lo véo von trên cành.
-Tiếng chim ca vui chào ngày mới
-Chào ánh nắng ấm áp muôn nơi.
-
-Chim ơi chim hót nữa đi chim
-Để cho đời thêm ngát hương thơm.
-Lời ca chim đánh thức muôn loài
-Rộn rã hân hoan đón chào bình minh.`,
-    mainTheme: "Chủ đề 3: Âm nhạc thế giới"
-  },
-  {
-    songTitle: "Những bông hoa những bài ca",
-    composer: "Hoàng Long",
-    lyrics: `Cùng nhau cầm hoa chúng em đến mừng cô thầy
-Lời hát rộn vang thiết tha thắm tình cô thầy.
-Những bông hoa tươi màu xinh xắn
-Kính dâng lên thầy cô kính yêu.
-
-Bao công ơn thầy cô dạy dỗ
-Dìu dắt chúng em khôn lớn từng ngày.
-Ngàn lời ca kính yêu dâng Người
-Tươi thắm tình thầy trò hôm nay.`,
-    mainTheme: "Chủ đề 4: Tri ân thầy cô giáo"
-  },
-  {
-    songTitle: "Tre ngà bên lăng Bác",
-    composer: "Hàn Ngọc Bích",
-    lyrics: `Bên lăng Bác Hồ có hàng tre ngà
-Đón gió đâu về mà đu đưa đu đưa.
-Đón nắng đâu về mà thêu hoa thêu hoa
-Rất trong là tiếng chim hót vang.
-
-Cây tre ngà bên lăng Bác Hồ
-Xanh ngát quanh năm như tấm lòng dân.
-Chúng em kính viếng Người Cha già
-Mãi mãi ghi sâu ơn đức Bác Hồ.`,
-    mainTheme: "Chủ đề 5: Nhớ ơn Bác Hồ"
+    songTitle: "Chim sơn ca",
+    composer: "Hoàng Long - Hoàng Lân",
+    mainTheme: "Khúc ca ngày mới",
+    timeSignature: "2/4",
+    tempo: "Rộn ràng, bay bổng",
+    lyrics: `Khúc hát mừng ngày mới sang, chim sơn ca hót vang đón ánh ban mai.
+Gió rung rinh từng chiếc lá, tiếng chim vui hòa cùng tiếng suối trong lành.`
   }
 ];
 
-// Helper to retrieve song info for a specific grade and week
 export function getSongInfoForGradeAndWeek(grade: Grade, week: number): SongMasterInfo {
-  let songs = GRADE_1_SONGS;
-  if (grade === 2) songs = GRADE_2_SONGS;
-  else if (grade === 3) songs = GRADE_3_SONGS;
-  else if (grade === 4) songs = GRADE_4_SONGS;
-  else if (grade === 5) songs = GRADE_5_SONGS;
-
-  // Cycle through available songs every 2 weeks (Week 1-2: Song 1, Week 3-4: Song 2, etc.)
-  const songIndex = Math.floor((week - 1) / 2) % songs.length;
-  return songs[songIndex];
+  const official = getOfficialMusicWeek(grade, week);
+  return {
+    songTitle: official.songTitle || official.lessonTitle,
+    composer: official.composer || "Việt Nam",
+    mainTheme: official.theme || "Âm nhạc tiểu học",
+    timeSignature: "2/4",
+    tempo: "Vừa phải, nhịp nhàng",
+    lyrics: official.lyrics || (official.songTitle ? `Giai điệu lời ca bài hát: ${official.songTitle}` : "")
+  };
 }
 
 /**
- * Generate highly detailed Music Lesson Details
- * Including specific song lyrics, step-by-step teacher instructions,
- * and exact student tasks for CV 2345/BGDĐT.
+ * Tạo chi tiết Kế hoạch bài dạy (KHBD) chuẩn 2 cột theo Công văn 2345/BGDĐT-GDTH
+ * Dựa trên đúng Phân phối chương trình mới của Bộ Giáo dục & Đào tạo cho các lớp 1, 2, 3, 4, 5
+ * Giáo viên phụ trách: Cô Nguyễn Thị Thanh Tâm
  */
 export function getDetailedMusicLesson(
   grade: Grade,
@@ -452,279 +108,266 @@ export function getDetailedMusicLesson(
   isEnhance: boolean,
   session: "Sáng" | "Chiều" = "Sáng"
 ): MusicLessonDetail {
-  const song = getSongInfoForGradeAndWeek(grade, week);
-  const isSecondWeekOfSong = week % 2 === 0;
+  const official = getOfficialMusicWeek(grade, week);
+  const songTitle = official.songTitle || (official.composer ? official.lessonTitle : `Bài học Tuần ${official.week}`);
+  const composer = official.composer || "";
+  const lyrics = official.lyrics || (official.songTitle ? `Lời ca bài hát "${official.songTitle}" theo Sách giáo khoa Âm nhạc Lớp ${grade}.` : "");
+  const baseTitle = official.lessonTitle;
+  const subTopics = official.subTopics || ["Hát"];
+  const adjustments = official.adjustments || "";
 
-  // 1. CHÍNH KHÓA (Buổi Sáng - Tiết Âm nhạc chuẩn)
+  // 1. CHÍNH KHÓA (Buổi Sáng - Phân phối chương trình chính khóa chuẩn CV 2345)
   if (!isEnhance && session === "Sáng") {
-    const isNewSong = !isSecondWeekOfSong;
-    const lessonTitle = isNewSong
-      ? `Bài hát: ${song.songTitle} (${song.composer}) - Học hát bài mới & Cảm thụ âm nhạc (Tuần ${week})`
-      : `Ôn tập bài hát: ${song.songTitle} - Gõ đệm thanh phách & Vận động phụ họa (Tuần ${week})`;
+    const lessonTitle = baseTitle;
 
-    const specificCompetencies = [
-      `Biết hát đúng giai điệu và chuẩn xác lời ca bài hát "${song.songTitle}" (${song.composer}).`,
-      `Biết gõ đệm theo phách, theo nhịp 2/4 bằng thanh phách, trống nhỏ hoặc vỗ tay nhịp nhàng.`,
-      `Cảm thụ vẻ đẹp giai điệu âm nhạc trong sáng, tự tin biểu diễn trước bạn bè và thầy cô.`
-    ];
+    // Xác định năng lực đặc thù dựa trên nội dung phân môn
+    const specificCompetencies: string[] = [];
+    if (subTopics.includes("Hát")) {
+      specificCompetencies.push(`Biết hát đúng cao độ, trường độ, phát âm rõ lời và biểu cảm bài hát "${songTitle}"${composer ? ` của nhạc sĩ ${composer}` : ""}.`);
+    }
+    if (subTopics.includes("Đọc nhạc")) {
+      specificCompetencies.push(`Đọc đúng tên nốt, cao độ và trường độ các nốt nhạc theo thang âm hoặc ký hiệu bàn tay.`);
+    }
+    if (subTopics.includes("Nhạc cụ")) {
+      specificCompetencies.push(`Biết sử dụng nhạc cụ gõ (thanh phách, song loan, trống con, maracas...) gõ đệm theo phách, theo nhịp 2/4 hoặc tiết tấu lời ca.`);
+    }
+    if (subTopics.includes("Lí thuyết âm nhạc")) {
+      specificCompetencies.push(`Nhận biết và gọi đúng tên các kí hiệu ghi nhạc (khuông nhạc, khóa Sol, hình nốt, dấu lặng, vạch nhịp, số chỉ nhịp).`);
+    }
+    if (subTopics.includes("TTAN") || subTopics.includes("Thường thức")) {
+      specificCompetencies.push(`Lắng nghe, nhận biết câu chuyện âm nhạc, hình dáng, cách chơi và âm sắc của nhạc cụ dân tộc / nhạc cụ phương Tây.`);
+    }
+    if (subTopics.includes("Nghe nhạc")) {
+      specificCompetencies.push(`Biết lắng nghe, cảm nhận giai điệu trong sáng, vui tươi và bộc lộ cảm xúc khi nghe tác phẩm âm nhạc.`);
+    }
+    if (subTopics.includes("Ôn tập") || subTopics.includes("Đánh giá")) {
+      specificCompetencies.push(`Hệ thống hóa các bài hát, bài đọc nhạc, nhạc cụ đã học; tự tin biểu diễn trước lớp.`);
+    }
+    if (specificCompetencies.length < 3) {
+      specificCompetencies.push("Phát triển cảm thụ thẩm mỹ âm nhạc, tự tin mạnh dạn tham gia biểu diễn nhóm.");
+    }
 
+    // Thiết bị dạy học
     const teacherMaterials = [
-      "Đàn phím điện tử (Organ / Keyboard), micro giảng dạy, loa trợ giảng công suất chuẩn.",
-      `Video bài hát mẫu "${song.songTitle}" kèm lời ca chạy chữ và slide tranh minh họa chủ đề.`,
-      "Bộ nhạc cụ gõ: Thanh phách gõ, Song loan, Trống con, Tambourine chuẩn bị cho từng tổ."
+      "Đàn phím điện tử (Organ / Keyboard), máy tính kết nối tivi/máy chiếu, loa bluetooth giảng dạy.",
+      `Học liệu số: File âm thanh mp3/mp4 bài "${songTitle}", video biểu diễn mẫu và tranh ảnh chủ đề "${official.theme}".`,
+      "Bộ nhạc cụ gõ chuẩn trường học: Thanh phách gỗ, song loan, trống con, maracas, trai-eng-gồ."
     ];
 
     const studentMaterials = [
-      `Sách giáo khoa Âm nhạc Lớp ${grade}, vở bài tập âm nhạc, đồ dùng học tập.`,
-      "Thanh phách gõ (mỗi học sinh 1 cặp), trang phục gọn gàng, tâm thế thoải mái."
+      `Sách giáo khoa Âm nhạc Lớp ${grade}, vở bài tập âm nhạc.`,
+      "Nhạc cụ gõ cá nhân (thanh phách / vỗ tay theo phách), tâm thế thoải mái, ngồi ngay ngắn."
     ];
 
-    const integrationNotes = `Tích hợp Giáo dục Tình yêu Quê hương Đất nước & Giáo dục thẩm mỹ âm nhạc (${song.mainTheme}).`;
+    // Trích xuất chỉ dẫn NLS / AI / QPAN cho các hoạt động
+    const nlsNote = adjustments.includes("Năng lực số") ? adjustments.split("Năng lực số:")[1]?.split("Năng lực AI:")[0]?.split("* Lồng ghép")[0]?.trim() : "";
+    const aiNote = adjustments.includes("Năng lực AI") ? adjustments.split("Năng lực AI:")[1]?.trim() : "";
+    const qpanNote = adjustments.includes("QPAN") ? adjustments.split("* Lồng ghép GD QPAN:")[1]?.split("Năng lực số:")[0]?.trim() : "";
 
     const activities: LessonActivity[] = [
       {
-        name: "1. Khởi động giọng & Khám phá giai điệu",
-        objective: "Tạo không khí phấn khởi, làm ấm dây thanh quản, mở khẩu hình chữ O/A và kết nối vào bài hát.",
-        teacherActivity: `1. Đón học sinh vào phòng học nhạc, kiểm tra tư thế ngồi ngay ngắn, lưng thẳng, hai tay đặt trên đùi.
-2. Hướng dẫn học sinh khởi động giọng theo đàn:
-   - Giáo viên đàn mẫu âm: Đồ - Mi - Son - Đố - Son - Mi - Đồ (theo mẫu âm "La - Mi - Ma" hoặc "Mô - Ma - Mi").
+        name: "1. Khởi động giọng & Kết nối bài học",
+        objective: "Tạo tâm thế hào hứng, mở khẩu hình, làm ấm dây thanh quản và kết nối vào chủ đề bài học.",
+        teacherActivity: `1. Đón học sinh vào phòng âm nhạc, nhắc nhở tư thế ngồi ngay ngắn, lưng thẳng, hai tay đặt trên đùi.
+2. Hướng dẫn học sinh khởi động giọng theo đàn Organ:
+   - Giáo viên đàn mẫu âm: Đồ - Mi - Son - Đố - Son - Mi - Đồ (theo âm "La" hoặc "Ma").
    - Bắt nhịp 1 - 2 cho cả lớp luyện thanh 3 lần từ thấp lên cao (nâng nửa cung mỗi lần).
-3. Đố vui âm nhạc: Đàn 1 đoạn nhạc mở đầu của bài hát "${song.songTitle}", hỏi HS: "Các em lắng nghe giai điệu này và cho cô biết giai điệu gợi lên cảm xúc gì? Vui tươi rộn rã hay êm đềm tha thiết?"
-4. Giáo viên nhận xét, giới thiệu vào bài học: "${lessonTitle}".`,
-        studentActivity: `1. Ổn định chỗ ngồi, tư thế ngay ngắn, thả lỏng cơ mặt và vai.
-2. Chú ý lắng nghe tiếng đàn của cô giáo:
-   - Lấy hơi bằng mũi, nén hơi nhẹ ở bụng, mở rộng khẩu hình.
-   - Hát đồng thanh mẫu âm "La - Mi - Ma" tròn vành rõ chữ theo đúng cao độ tiếng đàn.
-3. Chăm chú lắng nghe đoạn giai điệu cô đàn, giơ tay phát biểu cảm nhận: "Thưa cô, giai điệu rất vui tươi, rộn rã ạ!".
-4. Mở sách Âm nhạc Lớp ${grade}, hào hứng chuẩn bị bước vào nội dung bài mới.`
+3. Trò chơi khởi động kết nối:
+   - Giáo viên mở một đoạn âm thanh ngắn hoặc đàn nét nhạc chủ đề "${official.theme}".
+   - Đặt câu hỏi khơi gợi: "Giai điệu vừa rồi gợi cho các em cảm giác gì? Vui tươi, rộn rã hay êm đềm tha thiết?"
+4. Nhận xét câu trả lời của học sinh và giới thiệu bài học: "${lessonTitle}".`,
+        studentActivity: `1. Ổn định chỗ ngồi, tư thế ngay ngắn, thả lỏng cơ thể sẵn sàng tham gia tiết học.
+2. Luyện thanh theo tiếng đàn Organ của cô giáo:
+   - Lấy hơi bằng mũi, nén hơi nhẹ ở bụng, mở rộng khẩu hình chữ O/A.
+   - Hát đồng thanh mẫu âm "La - Mi - Ma" tròn vành rõ chữ, đúng cao độ tiếng đàn.
+3. Chăm chú lắng nghe đoạn nhạc khởi động, hào hứng giơ tay phát biểu cảm nhận.
+4. Mở SGK Âm nhạc Lớp ${grade}, trang chủ đề "${official.theme}", sẵn sàng bước vào bài học mới.`
       },
       {
-        name: "2. Khám phá & Dạy hát từng câu (Học lời ca)",
-        objective: `Nắm vững nội dung, cảm xúc bài hát và thuộc lời ca bài hát "${song.songTitle}" (${song.composer}).`,
-        teacherActivity: `1. Giới thiệu tác giả và nội dung bài hát:
-   - Trình chiếu tranh minh họa và tóm tắt ý nghĩa giáo dục của bài "${song.songTitle}".
-2. Hát mẫu:
-   - Giáo viên hát mẫu toàn bài kết hợp đàn đệm (hoặc mở file âm thanh chuẩn chất lượng cao) với sắc thái truyền cảm, vui tươi.
-3. Hướng dẫn đọc lời ca theo tiết tấu nhịp 2/4:
-   - Giáo viên đọc mẫu từng câu thơ theo tiết tấu và bắt nhịp cho học sinh đọc theo:
-${song.lyrics.split("\n\n")[0] || song.lyrics}
-4. Dạy hát từng câu nối tiếp:
-   - Câu 1: GV đàn giai điệu 2 lần -> Hát mẫu 1 lần -> Bắt nhịp cho cả lớp hát lại 2-3 lần.
-   - Câu 2: Tiến hành tương tự câu 1.
-   - Nối câu 1 và câu 2: Đàn nhịp nối, bắt nhịp cho cả lớp ghép câu 1 + câu 2.
-   - Dạy tiếp các câu còn lại cho đến hết bài.
-   - Lắp ráp toàn bộ bài hát từ đầu đến cuối.
-5. Sửa sai: Lắng nghe, phát hiện những chỗ học sinh hát chưa đúng cao độ hoặc phát âm chưa rõ (nhất là những nốt luyến, nốt cao), đàn lại nhiều lần cho HS sửa dứt điểm.`,
-        studentActivity: `1. Chú ý nhìn lên màn hình, lắng nghe cô giới thiệu về nhạc sĩ ${song.composer} và hoàn cảnh ra đời của bài hát.
-2. Lắng nghe cô hát mẫu trọn vẹn bài hát, đung đưa người nhẹ nhàng cảm nhận nhịp điệu.
-3. Đọc lời ca to, rõ ràng, đồng thanh theo tiết tấu tay cô bắt nhịp, chú ý ngắt nghỉ đúng chỗ.
-4. Học hát từng câu theo hiệu lệnh của giáo viên:
-   - Nghe tiếng đàn cô đàn câu 1 -> Hát hòa giọng theo đàn.
-   - Nghe tiếng đàn cô đàn câu 2 -> Hát nối tiếp câu 2.
-   - Ghép câu 1 và câu 2 cùng bạn bên cạnh.
-   - Hát nối tiếp toàn bộ bài hát hòa cùng tiếng đàn Organ của cô.
-5. Tiếp thu góp ý chỉnh sửa của cô giáo, tập lại nốt cao và nốt luyến cho thật chuẩn xác, đúng nhịp.`
+        name: "2. Khám phá & Hình thành kiến thức mới",
+        objective: `Học sinh nắm vững nội dung bài học: ${lessonTitle}; tiếp nhận kiến thức trọng tâm bài học.`,
+        teacherActivity: `1. Triển khai nội dung trọng tâm theo phân môn (${subTopics.join(", ")}):
+${subTopics.includes("Hát") ? `   - Giới thiệu tác phẩm: Giới thiệu nhạc sĩ ${composer || "Việt Nam"} và ý nghĩa bài hát "${songTitle}".
+   - Hát mẫu: Giáo viên hát mẫu toàn bài kết hợp đàn Organ (hoặc mở file âm thanh chuẩn mp3).
+   - Đọc lời ca: Hướng dẫn học sinh đọc lời ca theo tiết tấu từng câu:
+${lyrics ? '     "' + lyrics.split('\n').join(' - ') + '"' : '     "Lời ca chuẩn theo SGK"'}
+   - Dạy hát từng câu: Đàn giai điệu 2 lần -> hát mẫu 1 lần -> bắt nhịp cho học sinh hát lại 2-3 lần. Ghép nối các câu liên tiếp cho đến hết bài.
+   - Chỉnh sửa cao độ, nhịp điệu: Lắng nghe và uốn nắn những chỗ học sinh hát chưa đúng.` : ""}
+${subTopics.includes("Đọc nhạc") ? `   - Giới thiệu bài đọc nhạc: Hướng dẫn học sinh nhận biết các nốt nhạc, khóa Sol, trường độ nốt.
+   - Đọc tên nốt theo tiết tấu: Cho học sinh gõ phách đọc tên nốt nhạc.
+   - Luyện thang âm: Đàn mẫu và hướng dẫn học sinh đọc cao độ kết hợp ký hiệu bàn tay (Curwen hand signs).
+   - Đọc ghép cả bài hòa cùng tiếng đàn Organ.` : ""}
+${subTopics.includes("Nhạc cụ") ? `   - Giới thiệu nhạc cụ gõ (thanh phách, song loan, trống con, maracas...): Cấu tạo, cách cầm và âm sắc.
+   - Giáo viên thị phạm cách gõ đệm theo phách / theo nhịp 2/4.
+   - Hướng dẫn học sinh gõ đệm mẫu tiết tấu chậm rãi.` : ""}
+${subTopics.includes("Lí thuyết âm nhạc") ? `   - Hướng dẫn học sinh quan sát ví dụ trực quan trên màn hình chiếu về kí hiệu ghi nhạc.
+   - Giải thích khái niệm một cách dễ hiểu, gần gũi với lứa tuổi học sinh tiểu học.` : ""}
+${subTopics.includes("TTAN") || subTopics.includes("Thường thức") ? `   - Trình chiếu video/tranh ảnh minh họa nội dung câu chuyện âm nhạc hoặc nhạc cụ dân tộc.
+   - Đặt câu hỏi gợi mở để học sinh tìm hiểu xuất xứ, đặc điểm âm sắc và vai trò của âm nhạc.` : ""}
+${subTopics.includes("Nghe nhạc") ? `   - Mở tác phẩm nghe nhạc chuẩn chất lượng cao.
+   - Hướng dẫn học sinh lắng nghe, cảm nhận tiết tấu, giai điệu và bộc lộ cảm xúc thông qua cử chỉ nhẹ nhàng.` : ""}
+${nlsNote ? `2. Hướng dẫn ứng dụng Năng lực số (NLS):
+   - ${nlsNote}` : ""}
+${aiNote ? `3. Hướng dẫn nhận biết Trí tuệ nhân tạo (AI):
+   - ${aiNote}` : ""}`,
+        studentActivity: `1. Chăm chú theo dõi cô giáo hướng dẫn và tiếp thu kiến thức mới:
+${subTopics.includes("Hát") ? `   - Lắng nghe cô giới thiệu tác giả ${composer || "Việt Nam"} và ý nghĩa bài hát "${songTitle}".
+   - Lắng nghe cô hát mẫu trọn vẹn bài hát với nét mặt tươi vui, cảm nhận nhịp điệu.
+   - Đọc lời ca to, rõ ràng, đồng thanh theo tiết tấu tay cô bắt nhịp.
+   - Tập hát từng câu nối tiếp theo tiếng đàn Organ, chú ý lấy hơi đúng chỗ và phát âm chuẩn xác.
+   - Chú ý sửa sai các nốt cao, nốt luyến theo hướng dẫn của cô.` : ""}
+${subTopics.includes("Đọc nhạc") ? `   - Đọc tên nốt nhạc to, rõ theo nhịp chỉ huy của giáo viên.
+   - Luyện đọc cao độ từng nốt theo ký hiệu bàn tay, phối hợp nhịp nhàng giữa mắt nhìn và giọng đọc.
+   - Đọc bài nhạc hòa giọng cùng cả lớp và tiếng đàn.` : ""}
+${subTopics.includes("Nhạc cụ") ? `   - Quan sát cô thị phạm cách cầm nhạc cụ gõ đúng tư thế.
+   - Luyện tập gõ đệm theo nhịp, phách chậm rãi theo mẫu của cô.` : ""}
+${subTopics.includes("TTAN") || subTopics.includes("Nghe nhạc") ? `   - Xem video/tranh ảnh minh họa trên màn hình tivi, ghi nhớ các chi tiết thú vị.
+   - Thể hiện cảm xúc hào hứng, đung đưa người nhẹ nhàng theo nét nhạc tha thiết.` : ""}
+${nlsNote ? `2. Thực hiện kỹ năng số: Quan sát đúng khoảng cách với màn hình thiết bị, thao tác an toàn theo chỉ dẫn của cô.` : ""}
+${aiNote ? `3. Nhận biết và phân biệt: Hiểu được cảm xúc âm nhạc chân thực của con người so với âm thanh mô phỏng của máy móc/AI.` : ""}`
       },
       {
-        name: "3. Luyện tập & Thực hành gõ đệm thanh phách",
-        objective: `Hát chuẩn xác giai điệu, hòa giọng cùng tập thể và thực hành gõ đệm thanh phách theo phách / nhịp 2/4 bài hát "${song.songTitle}".`,
-        teacherActivity: `1. Hướng dẫn gõ đệm theo phách:
-   - Giáo viên cầm cặp thanh phách, làm mẫu gõ phách: "Phách 1 gõ mạnh vào tiếng đầu nhịp (độ mở thanh phách rộng), phách 2 gõ nhẹ".
-   - Làm mẫu gõ đệm đoạn 1 của bài hát, nhấn mạnh vào các từ mang phách mạnh.
-2. Hướng dẫn học sinh thực hành gõ đệm:
-   - Cho cả lớp vừa hát vừa gõ đệm thanh phách chậm rãi 2 lần.
-   - Chia nhóm luyện tập đối ứng:
-     + Dãy 1: Hát giai điệu lời ca.
-     + Dãy 2: Cầm thanh phách gõ đệm giữ nhịp.
-     + Đổi vai ngược lại giữa 2 dãy.
-3. Luyện tập theo tổ:
-   - Cho Tổ 1, Tổ 2, Tổ 3 lần lượt đứng dậy thể hiện.
-   - Giáo viên theo dõi, đi đến từng bàn chỉnh sửa cách cầm thanh phách và tư thế đứng/ngồi cho học sinh.
-4. Lồng ghép vận động cơ thể (Body Percussion đơn giản): Vỗ tay theo phách (Clap) kết hợp nhún chân nhịp nhàng theo câu hát.`,
-        studentActivity: `1. Quan sát cô giáo thị phạm cách cầm và gõ thanh phách theo phách mạnh - phách nhẹ.
-2. Cầm cặp thanh phách ngay ngắn trên 2 tay:
-   - Thực hành gõ đệm thanh phách hòa cùng giọng hát của cả lớp.
-   - Gõ đúng vào các tiếng trọng âm của bài hát mà cô đã hướng dẫn.
-3. Tham gia hoạt động đối ứng theo dãy:
-   - Khi dãy mình hát: Hát to, phát âm tròn tiếng, mắt hướng về cô.
-   - Khi dãy mình gõ đệm: Lắng nghe bạn hát và gõ phách thật đều tay, không gõ lộn xộn.
-4. Luyện tập theo tổ, tự tin đứng thể hiện tiết mục trước lớp.
-5. Vận động cơ thể: Vừa hát vừa kết hợp vỗ tay và nhún chân nhịp nhàng theo tiết tấu bài hát.`
+        name: "3. Luyện tập & Thực hành",
+        objective: `Củng cố và rèn luyện thành thạo kỹ năng hát, đọc nhạc hoặc gõ đệm nhạc cụ; rèn luyện tinh thần hợp tác nhóm.`,
+        teacherActivity: `1. Tổ chức luyện tập đa dạng hình thức:
+   - Luyện tập tập thể cả lớp: Vừa hát / đọc nhạc vừa kết hợp gõ đệm thanh phách theo phách / theo nhịp.
+   - Luyện tập theo dãy / tổ đối ứng:
+     + Dãy 1 thể hiện giai điệu lời ca.
+     + Dãy 2 cầm nhạc cụ gõ đệm giữ nhịp.
+     + Đổi vai nhịp nhàng giữa các dãy.
+   - Luyện tập theo nhóm 4 - 6 học sinh: Tự luyện tập và giúp đỡ lẫn nhau.
+2. Giáo viên di chuyển quan sát từng nhóm:
+   - Uốn nắn tư thế đứng, cách cầm thanh phách / nhạc cụ gõ.
+   - Nhắc nhở các em hát hòa giọng đều đặn, không gào to làm vỡ giọng.
+   - Hướng dẫn lồng ghép vận động cơ thể (Body Percussion: vỗ tay, nhún chân nhịp nhàng).
+3. Đánh giá thường xuyên: Nhận xét tinh thần tập luyện của từng tổ, khích lệ các em còn rụt rè.`,
+        studentActivity: `1. Tích cực tham gia luyện tập theo hiệu lệnh của cô giáo:
+   - Cả lớp cùng thực hành hòa giọng nhịp nhàng cùng tiếng gõ đệm thanh phách giòn giã.
+   - Tham gia hoạt động đối ứng: Dãy hát to rõ ràng, tròn vành rõ chữ; dãy gõ đệm giữ nhịp thật đều tay.
+   - Phối hợp ăn ý với các bạn trong nhóm nhỏ, tự tin trao đổi và góp ý cho nhau.
+2. Vận động cơ thể theo điệu nhạc: Vừa thể hiện bài học vừa nhún chân, vỗ tay nhịp nhàng theo phách.
+3. Tiếp thu ý kiến nhận xét của cô giáo để hoàn thiện kỹ năng hát và gõ đệm.`
       },
       {
-        name: "4. Vận dụng & Biểu diễn sáng tạo",
-        objective: `Tự tin biểu diễn bài hát trước lớp kết hợp phụ họa, rèn luyện sự mạnh dạn và kỹ năng đánh giá tiết mục của bạn bè.`,
-        teacherActivity: `1. Tổ chức sân khấu âm nhạc nhỏ tại lớp học:
-   - Mời đại diện nhóm học sinh (4-5 em) lên trước bục giảng biểu diễn.
-   - Giao nhiệm vụ: 2 bạn cầm Song loan/Trống gõ đệm, 3 bạn múa phụ họa đơn giản hoặc làm động tác Body Percussion.
-2. Hướng dẫn học sinh dưới lớp cách cổ vũ và quan sát nhận xét:
-   - Tiêu chí nhận xét: Bạn hát thuộc lời chưa? Gõ phách có đều không? Động tác phụ họa có đẹp mắt và tự tin không?
-3. Nhận xét, tuyên dương:
-   - Khen ngợi tinh thần biểu diễn tự tin, năng động của các nhóm.
-   - Tuyên dương cá nhân có giọng hát tốt, gõ nhịp chuẩn.
-4. Củng cố dặn dò:
-   - Nhắc lại tên bài hát "${song.songTitle}" và tác giả ${song.composer}.
-   - Khắc sâu bài học đạo đức / tình cảm quê hương qua nội dung ca từ.
-   - Dặn dò học sinh về nhà hát lại bài hát cho ông bà, cha mẹ cùng nghe.`,
-        studentActivity: `1. Các nhóm xung phong lên sân khấu lớp biểu diễn với tinh thần tự tin, vui tươi.
-   - Nhóm biểu diễn phối hợp nhịp nhàng giữa tiếng hát, thanh phách và cử chỉ phụ họa.
-2. Học sinh dưới lớp chú ý lắng nghe, vỗ tay cổ vũ nồng nhiệt cho bạn.
-3. Tích cực giơ tay nhận xét bạn theo gợi ý của cô: "Thưa cô, nhóm bạn Nam hát rất to, gõ phách đều và múa rất duyên dáng ạ!".
-4. Lắng nghe cô dặn dò, ghi nhớ tên bài hát và tác giả, hào hứng chuẩn bị bài hát cho gia đình nghe.`
+        name: "4. Vận dụng - Sáng tạo & Biểu diễn",
+        objective: `Học sinh tự tin biểu diễn trước tập thể, vận dụng kiến thức vào thực tế, bồi dưỡng tình yêu quê hương đất nước và phẩm chất tốt đẹp.`,
+        teacherActivity: `1. Tổ chức sân khấu âm nhạc nhỏ tại lớp:
+   - Mời đại diện các nhóm lên bục giảng biểu diễn báo cáo kết quả học tập.
+   - Khuyến khích nhóm sáng tạo thêm động tác phụ họa hoặc kết hợp hòa tấu nhạc cụ gõ.
+2. Hướng dẫn học sinh dưới lớp nhận xét, đánh giá đồng đẳng:
+   - Gợi ý tiêu chí: Hát thuộc lời chưa? Gõ đệm có đều nhịp không? Biểu cảm nét mặt có vui tươi, tự tin không?
+3. Nhận xét, tuyên dương và củng cố dặn dò:
+   - Khen ngợi tinh thần tự tin, sáng tạo của các nhóm. Tuyên dương cá nhân có nhiều tiến bộ.
+${qpanNote ? `   - Lồng ghép GD QPAN & Tình yêu quê hương: ${qpanNote}` : `   - Giáo dục tư tưởng: Khắc sâu tình yêu quê hương, mái trường, thầy cô và bạn bè thông qua nội dung bài học.`}
+   - Dặn dò học sinh về nhà thể hiện bài học cho ông bà, bố mẹ cùng thưởng thức.`,
+        studentActivity: `1. Tự tin bước lên sân khấu lớp biểu diễn cùng nhóm:
+   - Cúi đầu chào cô giáo và các bạn với nụ cười rạng rỡ.
+   - Phối hợp nhịp nhàng giữa tiếng hát, tiếng gõ đệm nhạc cụ và các động tác vận động phụ họa duyên dáng.
+   - Kết thúc tiết mục trong tiếng vỗ tay nồng nhiệt và cúi chào cảm ơn khán giả.
+2. Lắng nghe bạn biểu diễn và nhiệt tình cổ vũ:
+   - Giơ tay nhận xét bạn với tinh thần xây dựng và khen ngợi những ưu điểm của nhóm bạn.
+3. Lắng nghe cô dặn dò, ghi nhớ bài học ý nghĩa về tình cảm quê hương, gia đình và bạn bè.
+4. Hân hoan chuẩn bị góc học tập gọn gàng khi kết thúc tiết học.`
       }
     ];
 
     return {
-      songTitle: song.songTitle,
-      composer: song.composer,
+      songTitle,
+      composer,
       lessonTitle,
-      songLyrics: song.lyrics,
+      songLyrics: lyrics,
       specificCompetencies,
       teacherMaterials,
       studentMaterials,
-      integrationNotes,
+      integrationNotes: adjustments || "Tích hợp thẩm mỹ âm nhạc & năng lực số",
       activities
     };
   }
 
-  // 2. TĂNG CƯỜNG / BỒI DƯỠNG ÂM NHẠC (Buổi Chiều - Nâng cao kỹ năng, Body Percussion & Biểu diễn)
-  const enhanceLessonTitle = `Tăng cường Âm nhạc Lớp ${grade}: Luyện thanh nâng cao, Body Percussion & Dàn dựng biểu diễn bài "${song.songTitle}" (Tuần ${week})`;
+  // 2. TĂNG CƯỜNG / BỒI DƯỠNG ÂM NHẠC (Buổi Chiều - Nâng cao kỹ năng, Bộ gõ cơ thể & Biểu diễn sáng tạo)
+  const enhanceLessonTitle = `Tăng cường Âm nhạc Lớp ${grade}: Rèn luyện kỹ năng, Body Percussion & Biểu diễn sáng tạo (${baseTitle})`;
 
   const specificCompetencies = [
     `Rèn luyện kỹ năng luyện thanh nâng cao, mở rộng âm vực, nhả chữ tròn vành rõ tiếng, biết hát biểu cảm sắc thái to - nhỏ (f - p).`,
-    `Thực hành thành thạo bộ gõ cơ thể (Body Percussion): kết hợp vỗ tay (Clap), vỗ đùi (Pat), búng tay (Snap), dậm chân (Stamp) theo đa dạng tiết tấu.`,
+    `Thực hành thành thạo bộ gõ cơ thể (Body Percussion): kết hợp vỗ tay (Clap), vỗ đùi (Pat), búng tay (Snap), dậm chân (Stamp) theo nhịp bài học.`,
     `Phát triển năng khiếu âm nhạc cá nhân, tự tin biểu diễn đơn ca, song ca, tốp ca kết hợp đạo cụ và múa phụ họa.`
   ];
 
   const teacherMaterials = [
-    "Đàn Organ có cài đặt các tiết điệu (Styles) phong phú: Pop, March, Ballad, Folk.",
-    "Bộ nhạc cụ gõ đa dạng: Thanh phách gỗ, Song loan, Trống gõ tay bọc da, Tambourine lục lạc, Maracas quả lắc, Triangle tam giác.",
-    `Lời ca in khổ lớn của bài hát "${song.songTitle}" và sơ đồ hướng dẫn động tác Body Percussion chi tiết.`
+    "Đàn phím điện tử Organ cài đặt sẵn các tiết điệu (Styles) phong phú: Pop, March, Ballad, Dân ca.",
+    "Bộ nhạc cụ gõ đa dạng: Thanh phách gỗ, song loan, trống gõ tay, tambourine lục lạc, maracas quả lắc.",
+    `Lời ca in khổ lớn bài hát / bản nhạc và sơ đồ hướng dẫn động tác Body Percussion chi tiết.`
   ];
 
   const studentMaterials = [
     "Thanh phách gõ cá nhân, nhạc cụ gõ tự chọn của tổ (trống nhỏ, song loan, tambourine).",
-    "Trang phục biểu diễn gọn gàng, sẵn sàng vận động toàn thân."
+    "Trang phục biểu diễn gọn gàng, tâm thế thoải mái sẵn sàng vận động toàn thân."
   ];
-
-  const integrationNotes = `Tích hợp Giáo dục Thể chất & Rèn luyện Năng khiếu Âm nhạc (Body Percussion - Học thông qua trải nghiệm nghệ thuật).`;
 
   const activities: LessonActivity[] = [
     {
-      name: "1. Khởi động giọng chuyên sâu & Trò chơi tiết tấu (Warm-up & Rhythmic Game)",
+      name: "1. Khởi động giọng chuyên sâu & Trò chơi tiết tấu (Warm-up & Rhythm Echo)",
       objective: "Luyện hơi thở sâu từ cơ hoành, mở rộng quãng giọng và kích hoạt phản xạ tiết tấu nhanh nhạy.",
-      teacherActivity: `1. Kiểm tra sĩ số lớp tăng cường, ổn định vị trí theo hình chữ U hoặc vòng cung để tiện quan sát vận động.
-2. Hướng dẫn bài tập thở bụng sâu:
-   - Giáo viên hô: "Hít vào từ từ bằng mũi (bụng phình ra) - Giữ hơi 4 giây - Thở ra bằng miệng xì nhẹ (Xì... kéo dài 8 giây)". Thực hiện 3 lần.
-3. Luyện thanh mở rộng âm vực chuyên sâu:
-   - Đàn gam Đồ trưởng (C major): Đồ - Rê - Mi - Pha - Son - La - Si - Đố.
-   - Hướng dẫn luyện thanh theo mẫu âm staccato (nảy tiếng): "Ha - Ha - Ha - Ha - Hơ" và mẫu legato (liền tiếng): "Mô - Ô - Ô - Ma".
-4. Trò chơi tiết tấu "Tiếng vọng âm nhạc (Echo Rhythm)":
-   - Giáo viên vỗ tay một mẫu tiết tấu 2/4 (Đơn - Đơn - Đen | Đen - Lặng).
-   - Yêu cầu học sinh gõ lại chính xác tuyệt đối như tiếng vang trong hang đá.`,
-      studentActivity: `1. Đứng vào vị trí hình vòng cung, tư thế vững vàng, hai chân mở rộng bằng vai, vai thả lỏng.
-2. Thực hiện bài tập thở cơ hoành theo hiệu lệnh của cô giáo:
-   - Hít sâu bằng mũi, cảm nhận bụng căng tròn, không nhấc vai.
-   - Xì hơi đều đặn qua kẽ răng, kiểm soát luồng hơi dài và ổn định.
-3. Luyện thanh theo tiếng đàn:
-   - Hát nảy tiếng tròn trịa từng nốt nhạc "Ha - Ha - Ha".
-   - Hát liền giọng mượt mà theo mẫu âm "Mô - Ô - Ô - Ma", vươn tới các nốt cao mà không bị gắt giọng.
-4. Tham gia trò chơi "Tiếng vọng âm nhạc":
-   - Chăm chú lắng nghe mẫu tiết tấu của cô, lập tức vỗ tay mô phỏng lại chuẩn xác từng phách mạnh - nhẹ.`
+      teacherActivity: `1. Kiểm tra sĩ số lớp tăng cường, ổn định vị trí theo hình chữ U để tiện quan sát vận động.
+2. Hướng dẫn bài tập thở bụng sâu: "Hít vào từ từ bằng mũi (bụng phình ra) - Giữ hơi 4 giây - Thở ra bằng miệng xì nhẹ (Xì... kéo dài 8 giây)". Thực hiện 3 lần.
+3. Luyện thanh mở rộng âm vực: Đàn gam Đồ trưởng (C major), cho học sinh luyện theo mẫu âm nảy tiếng (staccato) "Ha - Ha - Ha" và liền tiếng (legato) "Mô - Ô - Ô - Ma".
+4. Trò chơi tiết tấu: Giáo viên vỗ mẫu tiết tấu 2/4, học sinh lắng nghe và vỗ lại như tiếng vọng âm thanh.`,
+      studentActivity: `1. Đứng vào vị trí hình vòng cung, tư thế vững vàng, hai chân mở rộng bằng vai, thả lỏng vai.
+2. Thực hiện bài tập thở cơ hoành theo hiệu lệnh của cô giáo, kiểm soát luồng hơi đều đặn.
+3. Luyện thanh theo tiếng đàn Organ: Hát nảy tiếng tròn trịa và hát liền giọng mượt mà theo đúng cao độ.
+4. Tham gia trò chơi tiết tấu: Lắng nghe chăm chú và vỗ tay đáp lại chuẩn xác từng nhịp phách mạnh - nhẹ.`
     },
     {
-      name: "2. Luyện hát nâng cao: Sắc thái biểu cảm & Hòa giọng bè (Vocal Expression)",
-      objective: `Hát bài "${song.songTitle}" đạt độ tinh tế về nhả chữ, ngân nghỉ, luyến láy và thể hiện rõ sắc thái to (f) - nhỏ (p).`,
-      teacherActivity: `1. Ôn luyện lời ca bài hát "${song.songTitle}":
-   - Trình chiếu lời ca đầy đủ:
-${song.lyrics}
-2. Hướng dẫn kỹ thuật nhả chữ và lấy hơi:
-   - Phân tích từng câu hát: Chỉ rõ chỗ nào cần lấy hơi nhanh (sau dấu phẩy), chỗ nào cần ngân dài đủ 2 phách, 3 phách.
-   - Hướng dẫn mở khẩu hình dọc, đưa âm thanh vang lên khoang mũi để giọng hát sáng và truyền cảm.
-3. Luyện tập sắc thái đối lập (Nuance & Dynamics):
-   - Đoạn 1: Hát vừa phải (Mezzo-Forte - mf), tình cảm, êm dịu.
-   - Đoạn điệp khúc / cao trào: Hát rộn ràng, hào sảng, mạnh mẽ (Forte - f), thể hiện trọn vẹn niềm vui tuổi thơ.
-4. Luyện tập đối đáp xướng - xô (Call & Response):
-   - Nhóm Nam: Hát vế câu 1 (Xướng).
-   - Nhóm Nữ: Hát tiếp vế câu 2 (Xô).
-   - Cả lớp: Hòa giọng câu kết thúc toàn bài.`,
-      studentActivity: `1. Đọc lại toàn bộ lời ca của bài hát "${song.songTitle}", ghi nhớ mạch cảm xúc của bài.
-2. Chú ý lắng nghe cô hướng dẫn kỹ thuật nhả chữ:
-   - Lấy hơi nhanh bằng miệng và mũi mà không gây tiếng động.
-   - Giữ hơi để ngân đủ trường độ nốt ngân dài ở cuối mỗi câu hát.
-3. Thực hành hát theo sắc thái biểu cảm:
-   - Hát êm dịu, mềm mại ở đoạn đầu bài hát.
-   - Bừng sáng giọng hát, ngân vang rạng rỡ khi bước vào đoạn điệp khúc.
-4. Phối hợp nhịp nhàng trong phần đối đáp:
-   - Nhóm Nam cất giọng mạnh mẽ, dứt khoát.
-   - Nhóm Nữ nối tiếp trong trẻo, mềm mại.
-   - Cả lớp hòa giọng hùng tráng, tròn đầy ở câu kết bài.`
+      name: "2. Luyện tập nâng cao: Sắc thái biểu cảm & Hòa giọng bè",
+      objective: `Nâng cao độ tinh tế về nhả chữ, ngân nghỉ, luyến láy và thể hiện rõ sắc thái to (f) - nhỏ (p) trong bài học "${songTitle}".`,
+      teacherActivity: `1. Hướng dẫn kỹ thuật nhả chữ và lấy hơi sâu: Chỉ rõ chỗ lấy hơi nhanh và chỗ ngân dài đủ phách.
+2. Luyện tập sắc thái đối lập:
+   - Đoạn 1: Hát vừa phải (mf), tình cảm, êm dịu.
+   - Đoạn cao trào: Hát hào sảng, mạnh mẽ (f), bộc lộ niềm vui tươi sáng.
+3. Luyện tập hát đối đáp xướng - xô: Nhóm Nam hát vế 1, Nhóm Nữ hát vế 2, cả lớp hòa giọng điệp khúc.
+4. Ghi âm phần thể hiện của nhóm bằng máy tính bảng hoặc điện thoại để học sinh nghe lại và tự đánh giá.`,
+      studentActivity: `1. Đọc lại lời ca, ghi nhớ mạch cảm xúc và kỹ thuật lấy hơi theo hướng dẫn của cô.
+2. Thực hành hát theo sắc thái biểu cảm to - nhỏ, thể hiện sự tinh tế trong giọng hát.
+3. Phối hợp ăn ý trong phần đối đáp xướng - xô giữa các nhóm.
+4. Lắng nghe lại file ghi âm của nhóm mình, cùng bạn tự đánh giá ưu điểm và điểm cần khắc phục.`
     },
     {
-      name: "3. Thực hành chuyên sâu Body Percussion & Hòa tấu bộ gõ (Body Percussion Ensemble)",
+      name: "3. Thực hành chuyên sâu Body Percussion & Hòa tấu bộ gõ",
       objective: `Kết hợp nhuần nhuyễn giữa giọng hát và chuỗi vận động gõ đệm cơ thể (Body Percussion) cùng nhạc cụ gõ đa dạng.`,
-      teacherActivity: `1. Giới thiệu chuỗi động tác Body Percussion 4 bước:
-   - Bước 1: Vỗ đùi trái - Vỗ đùi phải (Pat: phách 1)
-   - Bước 2: Vỗ tay trước ngực (Clap: phách 2)
-   - Bước 3: Búng ngón tay (Snap) hoặc dậm chân phải (Stamp: phách 3)
-   - Bước 4: Vỗ tay 2 cái liên tiếp (Clap - Clap: phách 4).
-2. Thị phạm chậm từng động tác kết hợp đếm nhịp 1 - 2 - 3 - 4:
-   - Giáo viên làm mẫu chậm 3 lần cho học sinh quan sát.
-   - Cho học sinh tập động tác không có nhạc, sau đó ghép nối chậm.
-3. Ghép chuỗi Body Percussion vào bài hát "${song.songTitle}":
-   - Cả lớp vừa hát vừa thực hiện chuỗi vận động cơ thể.
-4. Phân công hòa tấu nhạc cụ gõ theo nhóm:
-   - Tổ 1: Cầm Thanh phách gõ phách chính (giữ nhịp nền).
-   - Tổ 2: Cầm Song loan và Trống gõ vào phách mạnh (điểm xuyết).
-   - Tổ 3: Cầm Tambourine và Maracas lắc đều theo tiết tấu bài hát.
-   - Tổ 4: Thực hiện chuỗi động tác Body Percussion dẫn dắt.`,
-      studentActivity: `1. Chăm chú theo dõi cô giáo thị phạm từng bước vận động cơ thể (vỗ đùi -> vỗ tay -> dậm chân).
-2. Luyện tập chuỗi động tác Body Percussion từ chậm đến nhanh:
-   - Vỗ đùi nhẹ nhàng, không gây đau rát.
-   - Vỗ tay đanh, dứt khoát, âm thanh giòn giã.
-   - Dậm chân nhịp nhàng, giữ thăng bằng cơ thể tốt.
-3. Vừa hát bài hát "${song.songTitle}" vừa thực hiện đồng bộ chuỗi động tác cùng các bạn, cảm nhận sự hòa quyện giữa âm nhạc và cơ thể.
-4. Nhận nhạc cụ được phân công của tổ mình:
-   - Tổ Thanh phách gõ đều đặn, giữ nhịp vững vàng.
-   - Tổ Trống gõ gõ chắc tay vào phách mạnh.
-   - Tổ Tambourine lắc nhịp nhàng tạo hiệu ứng rộn rã.
-   - Cả lớp tạo nên một dàn hòa tấu bộ gõ sinh động, vui tươi.`
+      teacherActivity: `1. Hướng dẫn chuỗi động tác Body Percussion 4 bước:
+   - Phách 1: Vỗ đùi (Pat)
+   - Phách 2: Vỗ tay (Clap)
+   - Phách 3: Búng ngón tay hoặc dậm chân (Snap/Stamp)
+   - Phách 4: Vỗ tay đôi (Clap - Clap).
+2. Thị phạm chậm và bắt nhịp cho học sinh tập không nhạc, sau đó ghép vào bài học "${songTitle}".
+3. Phân công hòa tấu bộ gõ: Tổ 1 gõ thanh phách giữ nhịp, Tổ 2 gõ trống con điểm phách mạnh, Tổ 3 lắc tambourine/maracas, Tổ 4 thực hiện Body Percussion.`,
+      studentActivity: `1. Quan sát cô giáo thị phạm từng bước vận động cơ thể, luyện tập từ chậm đến nhanh.
+2. Vừa thể hiện bài học vừa thực hiện chuỗi động tác Body Percussion ăn khớp với tiết tấu.
+3. Nhận nhạc cụ được phân công của tổ, hòa tấu nhịp nhàng tạo nên một dàn nhạc bộ gõ rộn rã.`
     },
     {
-      name: "4. Dàn dựng sân khấu & Báo cáo tiết mục biểu diễn (Stage Performance & Peer Review)",
-      objective: `Tự tin biểu diễn tiết mục hoàn chỉnh theo phong cách nghệ thuật sân khấu học đường; biết tự đánh giá và nhận xét nhóm bạn.`,
-      teacherActivity: `1. Chia lớp thành 2 đội biểu diễn lớn:
-   - Đội 1: "Những Nốt Nhạc Vui"
-   - Đội 2: "Giai Điệu Tuổi Thơ".
-2. Hướng dẫn cách dàn dựng đội hình sân khấu:
-   - Vị trí đứng: Hàng trước múa phụ họa và Body Percussion, hàng sau cầm nhạc cụ hòa tấu.
-   - Tư thế chào khán giả trước và sau khi biểu diễn (cúi đầu chào tươi cười, tay đặt lên ngực).
-3. Tổ chức cho từng đội lên sân khấu lớp biểu diễn trọn vẹn tiết mục bài "${song.songTitle}":
-   - Giáo viên mở nhạc đệm Beat / Style sôi động trên đàn Organ.
-4. Đánh giá và nhận xét sư phạm:
-   - Mời đại diện học sinh nhận xét ưu điểm của đội bạn (về nhịp điệu, biểu cảm, sự đồng đều).
-   - Giáo viên tổng kết, ghi nhận sự tiến bộ vượt bậc của từng em trong buổi học tăng cường.
-   - Tuyên dương "Ngôi sao Âm nhạc của tuần" cho học sinh thể hiện xuất sắc nhất.`,
-      studentActivity: `1. Các thành viên trong đội nhanh chóng di chuyển vào vị trí đội hình đã được phân công.
-2. Tự tin bước lên sân khấu lớp:
-   - Cúi đầu chào cô giáo và các bạn với nụ cười rạng rỡ.
-   - Tự tin biểu diễn trọn vẹn bài hát: Hát vang lời ca, gõ đệm nhạc cụ ăn khớp, động tác Body Percussion nhịp nhàng, đẹp mắt.
-   - Kết thúc tiết mục trong tiếng vỗ tay ròn rã và cúi chào cảm ơn khán giả.
-3. Chăm chú xem phần biểu diễn của đội bạn, nhiệt tình cổ vũ.
-4. Mạnh dạn giơ tay nhận xét, đóng góp ý kiến mang tính xây dựng: "Thưa cô, tiết mục của đội bạn rất đều, bạn trưởng nhóm hát rất vang và bạn gõ trống rất đúng nhịp ạ!".
-5. Hân hoan đón nhận lời khen và danh hiệu khen thưởng của cô giáo.`
+      name: "4. Dàn dựng sân khấu & Báo cáo tiết mục biểu diễn",
+      objective: `Tự tin biểu diễn tiết mục hoàn chỉnh theo phong cách nghệ thuật sân khấu học đường; biết tự nhận xét và đánh giá bạn.`,
+      teacherActivity: `1. Chia lớp thành 2 đội biểu diễn: Đội "Giai Điệu Tuổi Thơ" và Đội "Những Nốt Nhạc Vui".
+2. Hướng dẫn cách dàn dựng đội hình sân khấu: Hàng trước múa phụ họa và Body Percussion, hàng sau hòa tấu nhạc cụ gõ.
+3. Tổ chức cho từng đội lên sân khấu lớp biểu diễn trên nền nhạc Beat sôi động.
+4. Giáo viên tổng kết, tuyên dương sự sáng tạo và tiến bộ của học sinh trong buổi học bồi dưỡng.`,
+      studentActivity: `1. Nhanh chóng di chuyển vào vị trí đội hình sân khấu đã được phân công.
+2. Tự tin biểu diễn trọn vẹn tiết mục với nụ cười rạng rỡ, động tác dứt khoát, âm nhạc hòa quyện.
+3. Cổ vũ nhiệt tình cho đội bạn, mạnh dạn đóng góp ý kiến nhận xét mang tính xây dựng.
+4. Hân hoan đón nhận lời khen ngợi và danh hiệu "Ngôi sao Âm nhạc của tuần".`
     }
   ];
 
   return {
-    songTitle: song.songTitle,
-    composer: song.composer,
+    songTitle,
+    composer,
     lessonTitle: enhanceLessonTitle,
-    songLyrics: song.lyrics,
+    songLyrics: lyrics,
     specificCompetencies,
     teacherMaterials,
     studentMaterials,
-    integrationNotes,
+    integrationNotes: adjustments ? `Tăng cường: ${adjustments}` : "Tăng cường năng lực thực hành âm nhạc & Body Percussion",
     activities
   };
 }

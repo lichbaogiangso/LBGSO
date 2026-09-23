@@ -1,4 +1,4 @@
-import { Grade, LessonPlan, ScheduleItem } from "../types";
+import { Grade, LessonIllustration, LessonPlan, ScheduleItem, LessonActivity } from "../types";
 import { getDetailedMusicLesson } from "./musicLessonDetails";
 import { getDetailedEnglishLesson } from "./englishLessonDetails";
 import { getDetailedLessonActivities } from "./detailedActivitiesGenerator";
@@ -532,7 +532,7 @@ export function generateFullWeekLessonPlans(
   options?: { includeSpecialistInHomeroom?: boolean }
 ): LessonPlan[] {
   const plans: LessonPlan[] = [];
-  const isHomeroom = schoolInfo.teacherType === "homeroom";
+  const isHomeroom = (schoolInfo?.teacherType ?? "homeroom") === "homeroom";
   const includeSpecialist = options?.includeSpecialistInHomeroom ?? false;
 
   // For homeroom teachers, filter out specialist subjects taught by specialist teachers.
@@ -651,9 +651,22 @@ export function generateFullWeekLessonPlans(
     let musicDetail: any = null;
     let englishDetail: any = null;
     let atgtDetail: any = null;
+    let currentIllustrations: (LessonIllustration[] | undefined)[] = [];
+    let detailedActivities: LessonActivity[] | null = null;
 
     // 1. AN TOÀN GIAO THÔNG (ATGT) - Khối 5
-    if (subLower.includes("an toàn giao thông") || subLower.includes("atgt") || subLower.includes("giao thông")) {
+    const isATGTCheck =
+      subLower.includes("an toàn giao thông") ||
+      subLower.includes("atgt") ||
+      subLower.includes("giao thông") ||
+      (item.lessonTitle && (
+        item.lessonTitle.toLowerCase().includes("an toàn") ||
+        item.lessonTitle.toLowerCase().includes("xe đạp") ||
+        item.lessonTitle.toLowerCase().includes("chuyển hướng") ||
+        item.lessonTitle.toLowerCase().includes("tầm nhìn")
+      ));
+
+    if (isATGTCheck) {
       atgtDetail = getATGTGrade5LessonInfo(schoolInfo.week);
       specificCompetencies = atgtDetail.specificCompetencies;
       teacherMaterials = atgtDetail.teacherMaterials;
@@ -666,8 +679,11 @@ export function generateFullWeekLessonPlans(
       act3Student = atgtDetail.activities[2].studentActivity;
       act4Teacher = atgtDetail.activities[3].teacherActivity;
       act4Student = atgtDetail.activities[3].studentActivity;
+      detailedActivities = atgtDetail.activities;
     } else if (subLower.includes("tiếng anh") || subLower.includes("anh văn") || subLower.includes("ta")) {
-      englishDetail = getDetailedEnglishLesson(itemGrade, schoolInfo.week, item.lessonTitle, item.period);
+      const pInYear = typeof item.curriculumPeriod === "number" ? item.curriculumPeriod : (schoolInfo.week - 1) * 4 + 1;
+      const pInWeek = ((pInYear - 1) % 4) + 1;
+      englishDetail = getDetailedEnglishLesson(itemGrade, schoolInfo.week, item.lessonTitle, pInWeek, pInYear);
       specificCompetencies = englishDetail.specificCompetencies;
       teacherMaterials = englishDetail.teacherMaterials;
       studentMaterials = englishDetail.studentMaterials;
@@ -679,7 +695,8 @@ export function generateFullWeekLessonPlans(
       act3Student = englishDetail.activities[2].studentActivity;
       act4Teacher = englishDetail.activities[3].teacherActivity;
       act4Student = englishDetail.activities[3].studentActivity;
-    } else if (!subLower.includes("an toàn") && (subLower.includes("âm nhạc") || subLower === "an" || subLower.startsWith("an ") || subLower.includes("hát nhạc"))) {
+      detailedActivities = englishDetail.activities;
+    } else if (!subLower.includes("an toàn") && (subLower.includes("âm nhạc") || subLower === "an" || subLower.startsWith("an ") || subLower.includes("bdan") || subLower.includes("hát nhạc") || (item.subSubject || "").toLowerCase().includes("âm nhạc"))) {
       const isEnhance = subLower.includes("tăng cường") || subLower.includes("bồi dưỡng") || subLower.includes("tcan") || subLower.includes("bdan") || (item.session === "Chiều");
       musicDetail = getDetailedMusicLesson(itemGrade, schoolInfo.week, isEnhance, item.session === "Chiều" ? "Chiều" : "Sáng");
       
@@ -694,6 +711,12 @@ export function generateFullWeekLessonPlans(
       act3Student = musicDetail.activities[2].studentActivity;
       act4Teacher = musicDetail.activities[3].teacherActivity;
       act4Student = musicDetail.activities[3].studentActivity;
+      detailedActivities = musicDetail.activities;
+      if (musicDetail.integrationNotes) {
+        item.integrationNotes = item.integrationNotes
+          ? `${item.integrationNotes} | ${musicDetail.integrationNotes}`
+          : musicDetail.integrationNotes;
+      }
     } else {
       const detailedRes = getDetailedLessonActivities({
         grade: itemGrade,
@@ -717,6 +740,13 @@ export function generateFullWeekLessonPlans(
       act3Student = detailedRes.activities[2].studentActivity;
       act4Teacher = detailedRes.activities[3].teacherActivity;
       act4Student = detailedRes.activities[3].studentActivity;
+      currentIllustrations = [
+        detailedRes.activities[0]?.illustrations,
+        detailedRes.activities[1]?.illustrations,
+        detailedRes.activities[2]?.illustrations,
+        detailedRes.activities[3]?.illustrations,
+      ];
+      detailedActivities = detailedRes.activities;
     }
 
     // Dynamic CV 2345 plan
@@ -725,18 +755,25 @@ export function generateFullWeekLessonPlans(
       : (musicDetail ? musicDetail.lessonTitle : (englishDetail ? englishDetail.lessonTitle : item.lessonTitle));
     const finalLessonTitle = cleanLessonTitle(rawLessonTitle);
 
-    const isATGT = subLower.includes("an toàn giao thông") || subLower.includes("atgt") || subLower.includes("giao thông");
+    const isATGT = Boolean(atgtDetail) || subLower.includes("an toàn giao thông") || subLower.includes("atgt") || subLower.includes("giao thông");
+    const isEnglish = Boolean(englishDetail) || subLower.includes("tiếng anh") || subLower.includes("anh văn") || subLower.includes("ta");
 
     plans.push({
       id: `plan-${item.id}-${idx}`,
       grade: itemGrade,
-      subject: item.subject,
+      subject: atgtDetail ? "AN TOÀN GIAO THÔNG" : item.subject,
       subSubject: atgtDetail ? "An toàn giao thông" : item.subSubject,
       lessonTitle: finalLessonTitle,
       session: item.session,
       timetablePeriod: item.period,
       periodNumber: currentPeriodInDay,
-      curriculumPeriod: atgtDetail ? atgtDetail.curriculumPeriod : (item.curriculumPeriod || currentPeriodInDay),
+      curriculumPeriod: atgtDetail
+        ? atgtDetail.curriculumPeriod
+        : (musicDetail
+            ? (subLower.includes("tăng cường") || subLower.includes("bồi dưỡng") || subLower.includes("tcan") || subLower.includes("bdan") || item.session === "Chiều"
+                ? `BD${schoolInfo.week}`
+                : schoolInfo.week)
+            : (item.curriculumPeriod || currentPeriodInDay)),
       week: schoolInfo.week,
       dayOfWeek: item.day,
       dateStr: item.dateStr || schoolInfo.startDate,
@@ -758,6 +795,14 @@ export function generateFullWeekLessonPlans(
               "Năng lực giao tiếp và hợp tác: Tích cực thảo luận nhóm, biết lắng nghe, chia sẻ kinh nghiệm xử lí tình huống giao thông an toàn.",
               "Năng lực giải quyết vấn đề và sáng tạo: Biết phán đoán nguy cơ và xử lí linh hoạt các tình huống bất ngờ khi tham gia giao thông để bảo đảm an toàn."
             ]
+          : isEnglish
+          ? (englishDetail?.generalCompetencies && englishDetail.generalCompetencies.length > 0
+              ? englishDetail.generalCompetencies
+              : [
+                  "Self-control and independent learning: Actively practice pronunciation, revise vocabulary, and complete learning tasks independently on hoclieu.vn.",
+                  "Communication and collaboration: Confidently interact with peers and teacher in pairs and group activities to accomplish communicative tasks.",
+                  "Problem-solving and creativity: Apply learned vocabulary and sentence structures flexibly in authentic communicative contexts and interactive games."
+                ])
           : [
               "Năng lực tự chủ và tự học: Tự giác chuẩn bị đầy đủ sách vở, đồ dùng học tập, chủ động hoàn thành nhiệm vụ cá nhân.",
               "Năng lực giao tiếp và hợp tác: Tích cực thảo luận nhóm, biết lắng nghe, tôn trọng và chia sẻ ý kiến với bạn bè.",
@@ -769,6 +814,15 @@ export function generateFullWeekLessonPlans(
               "Chăm chỉ, trung thực: Tích cực học tập, rèn luyện thói quen và văn hóa giao thông văn minh.",
               "Nhân ái: Sẵn sàng giúp đỡ người già, em nhỏ, người gặp sự cố khi tham gia giao thông."
             ]
+          : isEnglish
+          ? (englishDetail?.qualities && englishDetail.qualities.length > 0
+              ? englishDetail.qualities
+              : [
+                  "Hard-working (Chăm chỉ): Diligently engage in classroom activities, chants, songs, and interactive language games.",
+                  "Responsibility (Trách nhiệm): Follow classroom rules, handle learning materials and books carefully, and cooperate responsibly with peers.",
+                  "Kindness & Respect (Nhân ái): Exhibit polite communication, friendliness, and mutual respect towards classmates and teachers.",
+                  "Patriotism & Cultural awareness (Yêu nước): Demonstrate pride in Vietnamese culture while expanding horizons through learning the English language."
+                ])
           : [
               "Yêu nước, nhân ái: Tự hào về văn hóa, con người Việt Nam, yêu thương và giúp đỡ mọi người xung quanh.",
               "Chăm chỉ, trung thực: Cần cù trong học tập, trung thực trong làm bài và sinh hoạt lớp.",
@@ -799,26 +853,30 @@ export function generateFullWeekLessonPlans(
         teacher: teacherMaterials,
         student: studentMaterials
       },
-      activities: [
+      activities: (detailedActivities && detailedActivities.length > 0) ? detailedActivities : [
         {
           name: englishDetail ? "1. Hoạt động Khởi động (Warm-up)" : "1. Hoạt động Khởi động",
           teacherActivity: act1Teacher,
-          studentActivity: act1Student
+          studentActivity: act1Student,
+          illustrations: currentIllustrations[0]
         },
         {
           name: englishDetail ? "2. Khám phá / Hình thành kiến thức (Presentation)" : "2. Hoạt động Khám phá",
           teacherActivity: act2Teacher,
-          studentActivity: act2Student
+          studentActivity: act2Student,
+          illustrations: currentIllustrations[1]
         },
         {
           name: englishDetail ? "3. Luyện tập - Thực hành (Practice)" : "3. Hoạt động Luyện tập - Thực hành",
           teacherActivity: act3Teacher,
-          studentActivity: act3Student
+          studentActivity: act3Student,
+          illustrations: currentIllustrations[2]
         },
         {
           name: englishDetail ? "4. Vận dụng / Mở rộng (Production)" : "4. Hoạt động Vận dụng",
           teacherActivity: act4Teacher,
-          studentActivity: act4Student
+          studentActivity: act4Student,
+          illustrations: currentIllustrations[3]
         }
       ],
       postLessonAdjustment: "..........................................................................................................................................................................."

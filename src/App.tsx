@@ -20,6 +20,11 @@ import { MasterTimetable, LessonPlan, ScheduleItem, SchoolInfo, Grade, TeacherTy
 import { DEFAULT_MASTER_TIMETABLE, DEFAULT_CLASSES, DEFAULT_TEACHERS, TeacherInfo, generateWeeklyScheduleFromTimetable, calculateWeekDateRange } from "./data/defaultTimetables";
 import { generateFullWeekLessonPlans } from "./data/curriculumData";
 import {
+  getGrade1IllustrationsForLesson,
+  createUniversalIllustrationSvg,
+  createAiIllustrationPlaceholder
+} from "./data/grade1Illustrations";
+import {
   exportTimetableDocx,
   exportScheduleDocx,
   exportLessonPlansDocx,
@@ -512,7 +517,7 @@ export function App() {
     }
   };
 
-  // AI Generation Handler using Server API
+  // AI Generation Handler using Server API with Automatic SGK Illustration Placeholders
   const handleGenerateAIPlan = async (plan: LessonPlan, customPrompt?: string) => {
     setIsGeneratingAI(true);
     try {
@@ -531,20 +536,133 @@ export function App() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Lỗi khi kết nối với máy chủ AI.");
+      let planData: Partial<LessonPlan> | null = null;
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && (result.plan || result.data)) {
+          planData = result.plan || result.data;
+        }
       }
 
-      const result = await response.json();
-      if (result.success && result.plan) {
-        const updated = lessonPlans.map((p) =>
-          p.id === plan.id ? { ...p, ...result.plan, id: plan.id } : p
-        );
-        setLessonPlans(updated);
-      }
+      // Merge generated plan data or use existing plan as base
+      const targetPlan: LessonPlan = {
+        ...plan,
+        ...(planData || {}),
+        id: plan.id,
+      };
+
+      // Process and inject SGK Illustration Placeholders into activities
+      const grade1Authentic = plan.grade === 1 
+        ? getGrade1IllustrationsForLesson(plan.subject, plan.lessonTitle, plan.curriculumPeriod || 1)
+        : [];
+
+      const enrichedActivities = targetPlan.activities.map((act, actIdx) => {
+        let actIllustrations = act.illustrations ? [...act.illustrations] : [];
+
+        // Check if grade 1 has an authentic illustration for this activity index
+        if (plan.grade === 1 && grade1Authentic[actIdx]) {
+          actIllustrations = [grade1Authentic[actIdx]];
+        }
+
+        // Ensure any AI-suggested illustrations have high-quality SVG vector data
+        actIllustrations = actIllustrations.map((illus, illusIdx) => {
+          if (!illus.svg) {
+            illus.svg = createUniversalIllustrationSvg({
+              caption: illus.caption || `Tranh SGK: Quan sát ${plan.lessonTitle}`,
+              description: illus.description || `Mô tả tranh minh họa SGK cho hoạt động ${act.name}`,
+              grade: plan.grade,
+              subject: plan.subject,
+              pageStr: `Hình ${illusIdx + 1}`,
+            });
+          }
+          if (!illus.id) {
+            illus.id = `illus-${plan.id}-${actIdx}-${illusIdx}`;
+          }
+          if (!illus.width) illus.width = 420;
+          if (!illus.height) illus.height = 240;
+          return illus;
+        });
+
+        // If activity has no illustrations, inspect text for visual keywords
+        if (actIllustrations.length === 0) {
+          const actText = `${act.name} ${act.teacherActivity} ${act.studentActivity}`.toLowerCase();
+          const hasVisualIntent =
+            actText.includes("tranh") ||
+            actText.includes("hình") ||
+            actText.includes("ảnh") ||
+            actText.includes("quan sát") ||
+            actText.includes("sgk") ||
+            actText.includes("xem tranh") ||
+            actText.includes("tình huống") ||
+            actText.includes("bức tranh") ||
+            actText.includes("đèn tín hiệu") ||
+            actText.includes("xe đạp");
+
+          if (hasVisualIntent || plan.grade === 1) {
+            let caption = `Tranh SGK: Quan sát ${plan.lessonTitle} - ${act.name}`;
+            let description = `Tranh minh họa sách giáo khoa thể hiện các tình huống, nhân vật và đồ vật trực quan phục vụ ${act.name} của học sinh.`;
+            
+            if (actText.includes("khởi động")) {
+              caption = `Tranh khởi động SGK: ${plan.lessonTitle}`;
+              description = `Hình ảnh gợi mở tình huống mở đầu, thu hút học sinh khám phá bài học ${plan.lessonTitle}.`;
+            } else if (actText.includes("khám phá") || actText.includes("hình thành")) {
+              caption = `Tranh SGK Khám phá: ${plan.lessonTitle}`;
+              description = `Bức tranh SGK trọng tâm cung cấp ngữ liệu, tình huống khám phá kiến thức mới cho học sinh.`;
+            } else if (actText.includes("luyện tập") || actText.includes("thực hành")) {
+              caption = `Tranh SGK Bài tập thực hành: ${plan.lessonTitle}`;
+              description = `Tranh vẽ bài tập tình huống trong SGK để học sinh quan sát, thảo luận nhóm và giải quyết nhiệm vụ.`;
+            }
+
+            const placeholder = createAiIllustrationPlaceholder({
+              caption,
+              description,
+              grade: plan.grade,
+              subject: plan.subject,
+              category: "sgk",
+            });
+            actIllustrations.push(placeholder);
+          }
+        }
+
+        return {
+          ...act,
+          illustrations: actIllustrations.length > 0 ? actIllustrations : undefined,
+        };
+      });
+
+      const finalPlan: LessonPlan = {
+        ...targetPlan,
+        activities: enrichedActivities,
+      };
+
+      const updated = lessonPlans.map((p) => (p.id === plan.id ? finalPlan : p));
+      setLessonPlans(updated);
     } catch (err: any) {
-      console.warn("AI fallback to curated template:", err);
-      alert(`Đã hoàn tất tối ưu kế hoạch bài dạy: ${plan.lessonTitle}`);
+      console.warn("AI fallback with auto-illustrations:", err);
+      // Fallback with auto illustrations
+      const grade1Authentic = plan.grade === 1 
+        ? getGrade1IllustrationsForLesson(plan.subject, plan.lessonTitle, plan.curriculumPeriod || 1)
+        : [];
+
+      const fallbackActs = plan.activities.map((act, actIdx) => {
+        let illustrations = act.illustrations ? [...act.illustrations] : [];
+        if (plan.grade === 1 && grade1Authentic[actIdx]) {
+          illustrations = [grade1Authentic[actIdx]];
+        } else if (illustrations.length === 0) {
+          illustrations.push(createAiIllustrationPlaceholder({
+            caption: `Tranh SGK: Quan sát ${plan.lessonTitle} (${act.name})`,
+            description: `Tranh minh họa sách giáo khoa trực quan cho ${act.name} - Môn ${plan.subject} Lớp ${plan.grade}.`,
+            grade: plan.grade,
+            subject: plan.subject,
+          }));
+        }
+        return { ...act, illustrations };
+      });
+
+      const updated = lessonPlans.map((p) =>
+        p.id === plan.id ? { ...p, activities: fallbackActs } : p
+      );
+      setLessonPlans(updated);
     } finally {
       setIsGeneratingAI(false);
     }

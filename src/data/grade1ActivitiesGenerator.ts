@@ -1,5 +1,6 @@
 import { LessonActivity } from "../types";
 import { DetailedActivitiesResult } from "./detailedActivitiesGenerator";
+import { getGrade1IllustrationsForLesson } from "./grade1Illustrations";
 
 // Helper to clean lesson title
 function cleanTitle(title: string): string {
@@ -42,6 +43,9 @@ export function getGrade1DetailedActivities(params: {
   const subLower = subject.toLowerCase().trim();
   const subSubLower = subSubject.toLowerCase().trim();
   const titleCore = cleanTitle(lessonTitle);
+
+  // Lấy danh sách hình ảnh SGK minh họa chuẩn xác cho tiết học Lớp 1
+  const illustrations = getGrade1IllustrationsForLesson(subject, lessonTitle, curriculumPeriod);
 
   // =========================================================================
   // 1. MÔN TOÁN LỚP 1 (MATHEMATICS GRADE 1)
@@ -115,7 +119,8 @@ export function getGrade1DetailedActivities(params: {
 - Tự điều chỉnh lưng thẳng, không tì ngực vào bàn, hai chân để song song chạm sàn.`;
     } else if (isComparing) {
       act2Teacher = `• Bước 1: Tiếp cận tình huống so sánh qua tranh SGK Toán 1
-- GV chiếu tranh tình huống SGK trang bài học (hoặc tranh phóng to): Tranh vẽ bạn Mai có 3 bông hoa, bạn Nam có 2 bông hoa; hoặc tranh đàn bướm và đàn hoa.
+- GV chiếu tranh tình huống SGK trang bài học (hoặc tranh phóng to): Tranh vẽ bạn Mai có 3 bông hoa, bạn Nam có 2 bông hoa; hoặc tranh đàn bướm và đàn hoa, hoặc tranh quả táo và Rô-bốt chỉ 5 > 3.
+(Chèn hình ảnh minh họa SGK vào bên dưới)
 - GV hỏi: "Trong tranh có mấy bạn nhỏ? Mỗi bạn có bao nhiêu bông hoa? Muốn biết ai có nhiều hơn, ta làm thế nào?".
 • Bước 2: Thao tác ghép đôi 1 - 1 trên bộ que tính và bảng gài
 - GV hướng dẫn HS lấy 3 chấm tròn màu đỏ đặt ở hàng trên, lấy 2 chấm tròn màu xanh đặt ở hàng dưới.
@@ -138,11 +143,12 @@ export function getGrade1DetailedActivities(params: {
 - Cả lớp đồng thanh nhắc lại, ghi nhớ cách so sánh bằng việc ghép đôi 1 - 1.`;
 
       act3Teacher = `• Hướng dẫn giải quyết từng bài tập trong SGK Toán 1:
-- Bài 1 (SGK trang bài tập - Nối tranh và so sánh):
-  + Yêu cầu HS quan sát tranh mẫu bài 1 (nồi và nắp nồi, hoặc thìa và cốc).
+- Bài 1 (SGK trang 28 - Nối tranh và so sánh số lượng):
+(Chèn hình ảnh minh họa SGK vào bên dưới)
+  + Yêu cầu HS quan sát tranh mẫu bài 1 (nồi và nắp nồi, hoặc thìa và cốc, hoặc ô tô, khối lập phương).
   + Hỏi: "Có bao nhiêu cái nồi? Có bao nhiêu cái nắp? Số nồi và số nắp như thế nào với nhau?".
   + Hướng dẫn HS dùng bút chì nối từng cái nồi với 1 cái nắp trong SGK.
-- Bài 2 (SGK trang bài tập - Điền từ hoặc khoanh vào nhóm nhiều hơn/ít hơn):
+- Bài 2 (SGK trang 28 - Điền từ hoặc khoanh vào nhóm nhiều hơn/ít hơn):
   + Hướng dẫn HS đếm số con thỏ và củ cà rốt; khoanh tròn vào nhóm có số lượng nhiều hơn.
   + Quan sát từng bàn, uốn nắn cách cầm bút chì và khoanh hình của HS.
 - Bài 3 (SGK trang bài tập - Thao tác so sánh số):
@@ -166,6 +172,7 @@ export function getGrade1DetailedActivities(params: {
       // General Math 1 (Numbers, Addition, Subtraction, Shapes)
       act2Teacher = `• Bước 1: Khám phá kiến thức mới qua tranh minh họa SGK Toán 1
 - GV chiếu hình ảnh bài học trong SGK Toán 1 (ví dụ bài ${titleCore}): Tranh vẽ các con vật, đồ vật, bông hoa và các chấm tròn tương ứng.
+(Chèn hình ảnh minh họa SGK vào bên dưới)
 - Đặt câu hỏi đàm thoại dẫn dắt: "Quan sát tranh trong SGK, các em đếm xem có mấy chú chim? Có mấy chấm tròn? Bạn Rô-bốt đang chỉ vào số mấy?".
 • Bước 2: Thao tác với Bộ đồ dùng học Toán 1 của học sinh
 - Yêu cầu HS lấy trong hộp đồ dùng số lượng que tính / khối lập phương đúng bằng số lượng đồ vật trong tranh SGK.
@@ -191,6 +198,7 @@ export function getGrade1DetailedActivities(params: {
 
       act3Teacher = `• Tổ chức thực hành các bài tập trong SGK Toán 1:
 - Bài 1 (SGK trang bài tập - Đếm số lượng và viết số):
+(Chèn hình ảnh minh họa SGK vào bên dưới)
   + Yêu cầu HS quan sát từng ô hình trong SGK: Có mấy quả táo? Có mấy cái kẹo?
   + Hướng dẫn HS dùng bút chì viết số vào ô tròn dưới mỗi hình trong SGK (hoặc viết vào bảng con).
   + GV đi quan sát, uốn nắn từng em cách cầm bút chì và hướng viết con số.
@@ -238,13 +246,15 @@ export function getGrade1DetailedActivities(params: {
         name: "2. Hoạt động Khám phá (Hình thành kiến thức mới - 12 đến 15 phút)",
         objective: `Học sinh quan sát tranh SGK Toán 1, thao tác trực tiếp với que tính, thẻ số trong bộ đồ dùng để khám phá kiến thức bài: ${titleCore}.`,
         teacherActivity: act2Teacher,
-        studentActivity: act2Student
+        studentActivity: act2Student,
+        illustrations: illustrations[0] ? [illustrations[0]] : undefined
       },
       {
         name: "3. Hoạt động Luyện tập - Thực hành (12 đến 15 phút)",
         objective: "Học sinh hoàn thành các bài tập trong SGK Toán 1 và VBT, rèn kỹ năng viết số vào bảng con đúng ô ly.",
         teacherActivity: act3Teacher,
-        studentActivity: act3Student
+        studentActivity: act3Student,
+        illustrations: illustrations[1] ? [illustrations[1]] : undefined
       },
       {
         name: "4. Hoạt động Vận dụng - Mở rộng (3 đến 5 phút)",
@@ -405,8 +415,9 @@ export function getGrade1DetailedActivities(params: {
     } else {
       // Bài Âm chữ mới (Bài 1: A a; Bài 2: B b; Bài 3: C c...)
       act1Teacher = `• Khởi động kết nối tranh mở đầu bài học trong SGK:
-- Chiếu bức tranh khởi động trong SGK Tiếng Việt 1 bài học (ví dụ: tranh vẽ bạn nhỏ và bố mẹ đi dạo, có hoa lá, con vật...).
-- Đặt câu hỏi: "Các em quan sát tranh SGK trang... và cho cô biết: Trong tranh có những ai? Cảnh vật có những gì? Tên của đồ vật/con vật nào chứa âm hôm nay chúng ta chuẩn bị học?".
+- Chiếu bức tranh khởi động trong SGK Tiếng Việt 1 bài học (Bài ${titleCore}):
+(Chèn hình ảnh minh họa SGK vào bên dưới)
+- Đặt câu hỏi: "Các em quan sát tranh SGK trang bài học và cho cô biết: Trong tranh có những ai? Cảnh vật có những gì? Tên của đồ vật/con vật nào chứa âm hôm nay chúng ta chuẩn bị học?".
 - GV chốt lại và phát âm mẫu âm/chữ mới, ghi tựa bài lên bảng lớp.`;
 
       act1Student = `• Quan sát tranh khởi động trong SGK Tiếng Việt 1:
@@ -426,7 +437,8 @@ export function getGrade1DetailedActivities(params: {
 - Hướng dẫn đánh vần: b - a - ba. Hướng dẫn đọc trơn: ba.
 - Hướng dẫn thêm dấu thanh (dấu sắc, dấu huyền...) để tạo tiếng mới (bá, bà).
 • Bước 3: Đọc các từ ngữ ứng dụng dưới tranh trong SGK Tiếng Việt 1
-- GV chiếu/chỉ vào các tranh nhỏ ở mục 3 trong SGK trang bài học (Ví dụ: tranh con ba ba, tranh quả bóng, tranh con cá...).
+- GV chiếu/chỉ vào các tranh nhỏ ở mục 3 trong SGK trang bài học (Ví dụ: bò, bó cỏ, con cá, quả bóng...).
+(Chèn hình ảnh minh họa SGK vào bên dưới)
 - Yêu cầu HS đọc thầm từ ngữ dưới từng tranh, tìm tiếng có chứa âm vừa học.
 - Gọi HS đọc to từ ngữ ứng dụng trước lớp.`;
 
@@ -442,8 +454,8 @@ export function getGrade1DetailedActivities(params: {
 - Thêm dấu thanh theo lệnh cô: Gài thêm dấu sắc trên đầu chữ 'a' -> Đánh vần: "bờ - a - ba - sắc - bá" -> Đọc trơn: "bá".
 • Đọc từ ngữ ứng dụng trong SGK Tiếng Việt 1:
 - Dùng ngón tay trỏ chỉ vào từng chữ dưới tranh trong SGK trang bài học.
-- Đọc to từ ngữ: "ba ba", "bóng", "bà"...
-- Tìm và phát hiện: "Thưa cô, trong từ 'ba ba' cả hai tiếng đều có âm 'b' và âm 'a' vừa học ạ!".`;
+- Đọc to từ ngữ: "ba ba", "bóng", "bà", "bó cỏ"...
+- Tìm và phát hiện: "Thưa cô, trong từ 'bó cỏ' tiếng 'bó' có âm 'b' và 'o' vừa học ạ!".`;
 
       act3Teacher = `• Bước 1: Hướng dẫn viết chữ vào bảng con
 - GV viết mẫu chữ cái và chữ ghi tiếng lên khung bảng lớp có lưới ô ly (phóng to 4 ô ly).
@@ -454,7 +466,8 @@ export function getGrade1DetailedActivities(params: {
 - Yêu cầu HS cất bảng con, mở Vở Tập viết 1 đúng trang bài học.
 - Nhắc nhở tư thế ngồi viết và cách cầm bút chì. Cho HS tô và viết theo từng dòng mẫu trong vở.
 • Bước 3: Luyện đọc câu ứng dụng trong SGK Tiếng Việt 1
-- GV chỉ vào câu ứng dụng trong SGK trang bài học (Ví dụ: "Bà có ba ba", "Bé có búp bê"...).
+- GV chỉ vào câu ứng dụng trong SGK trang bài học (Ví dụ: "Bà có ba ba", "Bé có cỏ", "Bé có búp bê"...).
+(Chèn hình ảnh minh họa SGK vào bên dưới)
 - Hướng dẫn HS đọc thầm, tìm tiếng chứa âm mới, đọc nối tiếp từng em trước lớp.`;
 
       act3Student = `• Luyện viết bảng con:
@@ -471,34 +484,43 @@ export function getGrade1DetailedActivities(params: {
 - 3-4 bạn nối tiếp đọc to cả câu: "Bà có ba ba". Cả lớp đồng thanh đọc trơn lại toàn bài.`;
     }
 
+    const act4TeacherTV = `• Hoạt động Luyện nói theo chủ đề trong SGK Tiếng Việt 1:
+(Chèn hình ảnh minh họa SGK vào bên dưới)
+- GV chiếu tranh luyện nói (chủ đề "Chào hỏi lễ phép", "Bạn bè", hoặc "Gia đình" trong SGK trang 25).
+- Đặt câu hỏi gợi mở cho HS thảo luận và đóng vai theo cặp đôi: "Khi đi học về gặp ông bà, em chào thế nào?".
+• Tổ chức trò chơi: "Tìm tiếng mới chứa âm vừa học"
+- GV khuyến khích: "Bạn nào giỏi tìm được trong lớp mình hoặc ở nhà những từ có âm hôm nay chúng ta vừa học?".
+- Khen ngợi và tặng bông hoa điểm tốt cho các em tìm được từ nhanh và đúng.
+• Củng cố, dặn dò:
+- Mời 1 HS đọc lại toàn bộ bài đọc trong SGK Tiếng Việt 1 trang bài học (âm chữ, tiếng, từ ngữ ứng dụng, câu ứng dụng).
+- Dặn dò HS về nhà mở SGK Tiếng Việt 1 trang bài học, đọc lại cho bố mẹ, ông bà nghe và viết nốt bài trong Vở Tập viết.`;
+
     const activities: LessonActivity[] = [
       {
         name: "1. Hoạt động Khởi động (Warm-up - 5 phút)",
         objective: "Tạo tâm thế hào hứng, kết nối tranh khởi động SGK Tiếng Việt 1 vào bài học âm chữ mới.",
         teacherActivity: act1Teacher,
-        studentActivity: act1Student
+        studentActivity: act1Student,
+        illustrations: illustrations[0] ? [illustrations[0]] : undefined
       },
       {
         name: "2. Hoạt động Khám phá (Hình thành kiến thức mới - 12 đến 15 phút)",
         objective: `Nhận biết âm chữ mới, ghép tiếng trên bảng gài và đọc trơn từ ngữ ứng dụng trong SGK Tiếng Việt 1 bài: ${titleCore}.`,
         teacherActivity: act2Teacher,
-        studentActivity: act2Student
+        studentActivity: act2Student,
+        illustrations: illustrations[1] ? [illustrations[1]] : undefined
       },
       {
         name: "3. Hoạt động Luyện tập - Thực hành (12 đến 15 phút)",
         objective: "Luyện viết bảng con, viết Vở Tập viết 1 đúng ô ly và đọc đúng câu ứng dụng trong SGK.",
         teacherActivity: act3Teacher,
-        studentActivity: act3Student
+        studentActivity: act3Student,
+        illustrations: illustrations[2] ? [illustrations[2]] : undefined
       },
       {
         name: "4. Hoạt động Vận dụng - Mở rộng (3 đến 5 phút)",
         objective: "Tìm tiếng chứa âm vừa học xung quanh lớp học và chia sẻ bài đọc với gia đình.",
-        teacherActivity: `• Tổ chức trò chơi: "Tìm tiếng mới chứa âm vừa học"
-- GV khuyến khích: "Bạn nào giỏi tìm được trong lớp mình hoặc ở nhà những từ có âm hôm nay chúng ta vừa học?".
-- Khen ngợi và tặng bông hoa điểm tốt cho các em tìm được từ nhanh và đúng.
-• Củng cố, dặn dò:
-- Mời 1 HS đọc lại toàn bộ bài đọc trong SGK Tiếng Việt 1 trang bài học (âm chữ, tiếng, từ ngữ ứng dụng, câu ứng dụng).
-- Dặn dò HS về nhà mở SGK Tiếng Việt 1 trang bài học, đọc lại cho bố mẹ, ông bà nghe và viết nốt bài trong Vở Tập viết.`,
+        teacherActivity: act4TeacherTV,
         studentActivity: `• Tham gia trò chơi tìm tiếng mới:
 - HS hào hứng suy nghĩ và giơ tay phát biểu:
   + "Thưa cô, có tiếng 'bàn' chứa âm b ạ!".
@@ -507,7 +529,8 @@ export function getGrade1DetailedActivities(params: {
 • Củng cố bài học:
 - 1 bạn đọc to, dõng dạc toàn bộ bài học trong SGK từ đầu đến cuối; cả lớp lắng nghe và đọc thầm theo.
 - Thu dọn bảng con, phấn, bảng gài cất vào cặp sách ngay ngắn.
-- Ghi nhớ lời cô dặn để tối về đọc bài cho ba mẹ nghe và chỉ chữ cho em nhỏ xem.`
+- Ghi nhớ lời cô dặn để tối về đọc bài cho ba mẹ nghe và chỉ chữ cho em nhỏ xem.`,
+        illustrations: illustrations[3] ? [illustrations[3]] : undefined
       }
     ];
 

@@ -12,13 +12,15 @@ import {
   PageBreak,
   convertInchesToTwip,
   PageOrientation,
+  ImageRun,
 } from "docx";
 import { saveAs } from "file-saver";
-import { LessonPlan, ScheduleItem, SchoolInfo, MasterTimetable } from "../types";
+import { LessonPlan, ScheduleItem, SchoolInfo, MasterTimetable, LessonIllustration } from "../types";
 import { DAYS_OF_WEEK, DEFAULT_TEACHERS, TeacherInfo, isSlotMatchingTeacherOrSubject, getWeekDates, getEffectiveTimetableForWeek } from "../data/defaultTimetables";
 import { cleanLessonTitle } from "./lessonTitleHelper";
 import JSZip from "jszip";
 import { getScheduleAndPlansForTeacher } from "./teacherScheduleHelper";
+import { getIllustrationPngBytes } from "../data/grade1Illustrations";
 
 /**
  * Universal robust file download helper for Web & sandboxed iFrame environments
@@ -145,6 +147,159 @@ function createActivityCellParagraphs(
       })
     );
   });
+
+  return paragraphs.length > 0 ? paragraphs : [new Paragraph({ text: "" })];
+}
+
+// Helper to format multiline activity content and inject SGK illustrations at corresponding markers or at the end
+async function createActivityCellParagraphsWithIllustrations(
+  text: string,
+  font: string,
+  baseSize: number,
+  prefixHeading?: string,
+  illustrations?: LessonIllustration[]
+): Promise<Paragraph[]> {
+  if (!text && (!illustrations || illustrations.length === 0)) return [new Paragraph({ text: "" })];
+  const paragraphs: Paragraph[] = [];
+
+  if (prefixHeading) {
+    paragraphs.push(
+      new Paragraph({
+        spacing: { before: 40, after: 20 },
+        children: [new TextRun({ text: prefixHeading, bold: true, color: "0F172A", font, size: baseSize })],
+      })
+    );
+  }
+
+  // Pre-convert illustrations to PNG ImageRun objects
+  const preparedImages: { il: LessonIllustration; imgRun: ImageRun }[] = [];
+  if (illustrations && illustrations.length > 0) {
+    for (const il of illustrations) {
+      try {
+        const pngBytes = await getIllustrationPngBytes(il);
+        if (pngBytes && pngBytes.length > 0) {
+          const imgRun = new ImageRun({
+            data: pngBytes,
+            transformation: { width: 330, height: 210 },
+            type: "png",
+          });
+          preparedImages.push({ il, imgRun });
+        }
+      } catch (err) {
+        console.warn("Failed to render illustration PNG for docx:", err);
+      }
+    }
+  }
+
+  let imageIndex = 0;
+  const insertNextImage = () => {
+    if (imageIndex < preparedImages.length) {
+      const { il, imgRun } = preparedImages[imageIndex];
+      paragraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 80, after: 30 },
+          children: [imgRun],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 0, after: 70 },
+          children: [
+            new TextRun({
+              text: il.caption,
+              italics: true,
+              bold: true,
+              color: "334155",
+              font,
+              size: baseSize - 1,
+            }),
+          ],
+        })
+      );
+      imageIndex++;
+    }
+  };
+
+  const lines = text ? text.split("\n") : [];
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    // Check if this line is an image placeholder marker
+    if (
+      trimmed.includes("(Chèn hình ảnh minh họa SGK vào bên dưới)") ||
+      trimmed.includes("Chèn hình ảnh minh họa SGK")
+    ) {
+      insertNextImage();
+      return;
+    }
+
+    const isMajorHeader = trimmed.startsWith("* CÁC TỪ VỰNG") ||
+                          trimmed.startsWith("* CÁC MẪU CÂU") ||
+                          trimmed.startsWith("* THAO TÁC") ||
+                          trimmed.startsWith("* CÁC BƯỚC") ||
+                          trimmed.startsWith("* TÊN TRÒ CHƠI") ||
+                          trimmed.startsWith("* DANH SÁCH") ||
+                          trimmed.startsWith("- DẠY VÀ") ||
+                          trimmed.startsWith("- TIẾP NHẬN") ||
+                          trimmed.startsWith("- TỔ CHỨC") ||
+                          trimmed.startsWith("- THAM GIA") ||
+                          trimmed.startsWith("- THỰC HIỆN") ||
+                          trimmed.startsWith("★");
+
+    const isVocabItem = /^\d+\.\s+[a-zA-Z]/.test(trimmed) || (trimmed.startsWith("• ") && trimmed.includes(":"));
+
+    // Check if line has a prominent label before colon (e.g., "+ Bước 1 (5 phút):", "* Lưu ý:", "- Khởi động:")
+    const stepMatch = trimmed.match(/^([+*•-]\s*[^:]{2,35}:)(.*)$/);
+    if (stepMatch && !isMajorHeader) {
+      const label = stepMatch[1];
+      const rest = stepMatch[2];
+      paragraphs.push(
+        new Paragraph({
+          spacing: { before: 25, after: 15 },
+          children: [
+            new TextRun({
+              text: label + " ",
+              bold: true,
+              color: "1E40AF",
+              font,
+              size: baseSize - 0.5,
+            }),
+            new TextRun({
+              text: rest.trim(),
+              bold: false,
+              color: "334155",
+              font,
+              size: baseSize - 0.5,
+            }),
+          ],
+        })
+      );
+      return;
+    }
+
+    paragraphs.push(
+      new Paragraph({
+        spacing: { before: isMajorHeader ? 40 : 15, after: isMajorHeader ? 20 : 15 },
+        children: [
+          new TextRun({
+            text: line,
+            bold: isMajorHeader || isVocabItem,
+            color: isMajorHeader ? "1E40AF" : (isVocabItem ? "0F172A" : "334155"),
+            font,
+            size: isMajorHeader ? baseSize : baseSize - 0.5,
+          }),
+        ],
+      })
+    );
+  });
+
+  // If there are remaining illustrations not yet placed at markers, append them
+  while (imageIndex < preparedImages.length) {
+    insertNextImage();
+  }
 
   return paragraphs.length > 0 ? paragraphs : [new Paragraph({ text: "" })];
 }
@@ -1489,7 +1644,8 @@ export async function exportLessonPlansDocx(
 
   let currentDay = "";
 
-  sortedPlans.forEach((plan, planIdx) => {
+  for (let planIdx = 0; planIdx < sortedPlans.length; planIdx++) {
+    const plan = sortedPlans[planIdx];
     // New Day Section
     if (plan.dayOfWeek !== currentDay) {
       if (currentDay !== "") {
@@ -1571,11 +1727,33 @@ export async function exportLessonPlansDocx(
       })
     );
 
+    const isEnglishPlan = plan.subject.toLowerCase().includes("tiếng anh") ||
+                          plan.subject.toLowerCase().includes("anh văn") ||
+                          Boolean(plan.englishVocabulary && plan.englishVocabulary.length > 0) ||
+                          (plan.teacherName && plan.teacherName.toLowerCase().includes("nương"));
+
+    const genComps = (isEnglishPlan && plan.objectives.generalCompetencies?.[0]?.startsWith("Năng lực"))
+      ? [
+          "Self-control and independent learning: Actively practice pronunciation, revise vocabulary, and complete learning tasks independently on hoclieu.vn.",
+          "Communication and collaboration: Confidently interact with peers and teacher in pairs and group activities to accomplish communicative tasks.",
+          "Problem-solving and creativity: Apply learned vocabulary and sentence structures flexibly in authentic communicative contexts and interactive games."
+        ]
+      : plan.objectives.generalCompetencies;
+
+    const qualComps = (isEnglishPlan && plan.objectives.qualities?.[0]?.startsWith("Yêu nước"))
+      ? [
+          "Hard-working (Chăm chỉ): Diligently engage in classroom activities, chants, songs, and interactive language games.",
+          "Responsibility (Trách nhiệm): Follow classroom rules, handle learning materials and books carefully, and cooperate responsibly with peers.",
+          "Kindness & Respect (Nhân ái): Exhibit polite communication, friendliness, and mutual respect towards classmates and teachers.",
+          "Patriotism & Cultural awareness (Yêu nước): Demonstrate pride in Vietnamese culture while expanding horizons through learning the English language."
+        ]
+      : plan.objectives.qualities;
+
     // Section I: Objectives (YÊU CẦU CẦN ĐẠT)
     docChildren.push(
       new Paragraph({
         spacing: { before: 40, after: 20 },
-        children: [new TextRun({ text: "I. YÊU CẦU CẦN ĐẠT", bold: true, color: "0F172A", font, size: baseSize })],
+        children: [new TextRun({ text: isEnglishPlan ? "I. OBJECTIVES (YÊU CẦU CẦN ĐẠT)" : "I. YÊU CẦU CẦN ĐẠT", bold: true, color: "0F172A", font, size: baseSize })],
       })
     );
 
@@ -1584,7 +1762,7 @@ export async function exportLessonPlansDocx(
       new Paragraph({
         spacing: { after: 20 },
         children: [
-          new TextRun({ text: "1. Năng lực đặc thù: ", bold: true, font, size: baseSize }),
+          new TextRun({ text: isEnglishPlan ? "1. English Language Competence (Năng lực đặc thù): " : "1. Năng lực đặc thù: ", bold: true, font, size: baseSize }),
           new TextRun({ text: plan.objectives.specificCompetencies.join(" "), font, size: baseSize }),
         ],
       })
@@ -1595,8 +1773,8 @@ export async function exportLessonPlansDocx(
       new Paragraph({
         spacing: { after: 20 },
         children: [
-          new TextRun({ text: "2. Năng lực chung: ", bold: true, font, size: baseSize }),
-          new TextRun({ text: plan.objectives.generalCompetencies.join(" "), font, size: baseSize }),
+          new TextRun({ text: isEnglishPlan ? "2. General Competencies (Năng lực chung): " : "2. Năng lực chung: ", bold: true, font, size: baseSize }),
+          new TextRun({ text: genComps.join(" "), font, size: baseSize }),
         ],
       })
     );
@@ -1606,8 +1784,8 @@ export async function exportLessonPlansDocx(
       new Paragraph({
         spacing: { after: 20 },
         children: [
-          new TextRun({ text: "3. Phẩm chất: ", bold: true, font, size: baseSize }),
-          new TextRun({ text: plan.objectives.qualities.join(" "), font, size: baseSize }),
+          new TextRun({ text: isEnglishPlan ? "3. Attributes / Qualities (Phẩm chất): " : "3. Phẩm chất: ", bold: true, font, size: baseSize }),
+          new TextRun({ text: qualComps.join(" "), font, size: baseSize }),
         ],
       })
     );
@@ -1630,7 +1808,7 @@ export async function exportLessonPlansDocx(
           new Paragraph({
             spacing: { after: 30 },
             children: [
-              new TextRun({ text: "4. Tích hợp giáo dục: ", bold: true, color: "047857", font, size: baseSize }),
+              new TextRun({ text: isEnglishPlan ? "4. Integrated Cross-curricular Content (Nội dung tích hợp): " : "4. Tích hợp giáo dục: ", bold: true, color: "047857", font, size: baseSize }),
               new TextRun({ text: intLines.join("; "), italics: true, color: "065F46", font, size: baseSize }),
             ],
           })
@@ -1642,14 +1820,14 @@ export async function exportLessonPlansDocx(
     docChildren.push(
       new Paragraph({
         spacing: { before: 40, after: 20 },
-        children: [new TextRun({ text: "II. ĐỒ DÙNG DẠY HỌC", bold: true, color: "0F172A", font, size: baseSize })],
+        children: [new TextRun({ text: isEnglishPlan ? "II. TEACHING AIDS & EQUIPMENT (ĐỒ DÙNG DẠY HỌC)" : "II. ĐỒ DÙNG DẠY HỌC", bold: true, color: "0F172A", font, size: baseSize })],
       })
     );
     docChildren.push(
       new Paragraph({
         spacing: { after: 20 },
         children: [
-          new TextRun({ text: "- Giáo viên: ", bold: true, font, size: baseSize }),
+          new TextRun({ text: isEnglishPlan ? "- Teacher (Giáo viên): " : "- Giáo viên: ", bold: true, font, size: baseSize }),
           new TextRun({ text: plan.materials.teacher.join("; "), font, size: baseSize }),
         ],
       })
@@ -1658,7 +1836,7 @@ export async function exportLessonPlansDocx(
       new Paragraph({
         spacing: { after: 30 },
         children: [
-          new TextRun({ text: "- Học sinh: ", bold: true, font, size: baseSize }),
+          new TextRun({ text: isEnglishPlan ? "- Students (Học sinh): " : "- Học sinh: ", bold: true, font, size: baseSize }),
           new TextRun({ text: plan.materials.student.join("; "), font, size: baseSize }),
         ],
       })
@@ -1763,13 +1941,13 @@ export async function exportLessonPlansDocx(
       }),
     ];
 
-    plan.activities.forEach((act) => {
+    for (const act of plan.activities) {
       const teacherParagraphs: Paragraph[] = [
         new Paragraph({
           spacing: { after: 30 },
           children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })],
         }),
-        ...createActivityCellParagraphs(act.teacherActivity, font, baseSize, "- Cách tiến hành:")
+        ...(await createActivityCellParagraphsWithIllustrations(act.teacherActivity, font, baseSize, "- Cách tiến hành:", act.illustrations))
       ];
 
       const studentParagraphs: Paragraph[] = [
@@ -1790,7 +1968,7 @@ export async function exportLessonPlansDocx(
           ],
         })
       );
-    });
+    }
 
     docChildren.push(
       new Table({
@@ -1817,7 +1995,7 @@ export async function exportLessonPlansDocx(
         children: [new TextRun({ text: "------------------------------------------------------------------------------------------------------------------------", font, size: smallSize, color: "CBD5E1" })],
       })
     );
-  });
+  }
 
   const doc = new Document({
     sections: [
@@ -2006,7 +2184,7 @@ export async function exportCombinedAllInOneDocx(
 
   let currentComboDay = "";
 
-  sortedComboPlans.forEach((plan) => {
+  for (const plan of sortedComboPlans) {
     if (plan.dayOfWeek !== currentComboDay) {
       if (currentComboDay !== "") {
         docChildren.push(new Paragraph({ children: [new PageBreak()] }));
@@ -2205,13 +2383,13 @@ export async function exportCombinedAllInOneDocx(
       }),
     ];
 
-    plan.activities.forEach((act) => {
+    for (const act of plan.activities) {
       const teacherParagraphs: Paragraph[] = [
         new Paragraph({
           spacing: { after: 30 },
           children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })],
         }),
-        ...createActivityCellParagraphs(act.teacherActivity, font, baseSize, "- Cách tiến hành:")
+        ...(await createActivityCellParagraphsWithIllustrations(act.teacherActivity, font, baseSize, "- Cách tiến hành:", act.illustrations))
       ];
 
       const studentParagraphs: Paragraph[] = [
@@ -2232,14 +2410,14 @@ export async function exportCombinedAllInOneDocx(
           ],
         })
       );
-    });
+    }
 
     docChildren.push(new Table({ width: { size: tableWidth, type: WidthType.DXA }, rows: activityRows }));
 
     // IV. Điều chỉnh
     docChildren.push(new Paragraph({ text: "", spacing: { before: 60 } }));
     docChildren.push(new Paragraph({ children: [new TextRun({ text: "IV. ĐIỀU CHỈNH SAU BÀI DẠY: ", bold: true, font, size: baseSize }), new TextRun({ text: plan.postLessonAdjustment || ".....................................................................................................................................", font, size: smallSize, color: "64748B" })] }));
-  });
+  }
 
   const doc = new Document({
     sections: [
@@ -2511,9 +2689,10 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
 
   const weekDays = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu"];
 
-  weekDays.forEach((day, dayIndex) => {
+  for (let dayIndex = 0; dayIndex < weekDays.length; dayIndex++) {
+    const day = weekDays[dayIndex];
     const plansForDay = sortedPlans.filter((p) => p.dayOfWeek === day);
-    if (plansForDay.length === 0) return;
+    if (plansForDay.length === 0) continue;
 
     if (dayIndex > 0) {
       docChildren.push(new Paragraph({ children: [new PageBreak()] }));
@@ -2540,7 +2719,8 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
       })
     );
 
-    plansForDay.forEach((plan, planIdxInDay) => {
+    for (let planIdxInDay = 0; planIdxInDay < plansForDay.length; planIdxInDay++) {
+      const plan = plansForDay[planIdxInDay];
       if (planIdxInDay > 0) {
         docChildren.push(new Paragraph({ text: "", spacing: { before: 150 } }));
         docChildren.push(
@@ -2586,18 +2766,40 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
         })
       );
 
+      const isEnglishPlan = plan.subject.toLowerCase().includes("tiếng anh") ||
+                            plan.subject.toLowerCase().includes("anh văn") ||
+                            Boolean(plan.englishVocabulary && plan.englishVocabulary.length > 0) ||
+                            (plan.teacherName && plan.teacherName.toLowerCase().includes("nương"));
+
+      const genComps = (isEnglishPlan && plan.objectives.generalCompetencies?.[0]?.startsWith("Năng lực"))
+        ? [
+            "Self-control and independent learning: Actively practice pronunciation, revise vocabulary, and complete learning tasks independently on hoclieu.vn.",
+            "Communication and collaboration: Confidently interact with peers and teacher in pairs and group activities to accomplish communicative tasks.",
+            "Problem-solving and creativity: Apply learned vocabulary and sentence structures flexibly in authentic communicative contexts and interactive games."
+          ]
+        : plan.objectives.generalCompetencies;
+
+      const qualComps = (isEnglishPlan && plan.objectives.qualities?.[0]?.startsWith("Yêu nước"))
+        ? [
+            "Hard-working (Chăm chỉ): Diligently engage in classroom activities, chants, songs, and interactive language games.",
+            "Responsibility (Trách nhiệm): Follow classroom rules, handle learning materials and books carefully, and cooperate responsibly with peers.",
+            "Kindness & Respect (Nhân ái): Exhibit polite communication, friendliness, and mutual respect towards classmates and teachers.",
+            "Patriotism & Cultural awareness (Yêu nước): Demonstrate pride in Vietnamese culture while expanding horizons through learning the English language."
+          ]
+        : plan.objectives.qualities;
+
       // I. Yêu cầu cần đạt
       docChildren.push(
         new Paragraph({
           spacing: { before: 40, after: 20 },
-          children: [new TextRun({ text: "I. YÊU CẦU CẦN ĐẠT", bold: true, font, size: baseSize })],
+          children: [new TextRun({ text: isEnglishPlan ? "I. OBJECTIVES (YÊU CẦU CẦN ĐẠT)" : "I. YÊU CẦU CẦN ĐẠT", bold: true, font, size: baseSize })],
         })
       );
       docChildren.push(
         new Paragraph({
           spacing: { after: 20 },
           children: [
-            new TextRun({ text: "1. Năng lực đặc thù: ", bold: true, font, size: baseSize }),
+            new TextRun({ text: isEnglishPlan ? "1. English Language Competence (Năng lực đặc thù): " : "1. Năng lực đặc thù: ", bold: true, font, size: baseSize }),
             new TextRun({ text: plan.objectives.specificCompetencies.join(" "), font, size: baseSize }),
           ],
         })
@@ -2606,8 +2808,8 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
         new Paragraph({
           spacing: { after: 20 },
           children: [
-            new TextRun({ text: "2. Năng lực chung: ", bold: true, font, size: baseSize }),
-            new TextRun({ text: plan.objectives.generalCompetencies.join(" "), font, size: baseSize }),
+            new TextRun({ text: isEnglishPlan ? "2. General Competencies (Năng lực chung): " : "2. Năng lực chung: ", bold: true, font, size: baseSize }),
+            new TextRun({ text: genComps.join(" "), font, size: baseSize }),
           ],
         })
       );
@@ -2615,8 +2817,8 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
         new Paragraph({
           spacing: { after: 20 },
           children: [
-            new TextRun({ text: "3. Phẩm chất: ", bold: true, font, size: baseSize }),
-            new TextRun({ text: plan.objectives.qualities.join(" "), font, size: baseSize }),
+            new TextRun({ text: isEnglishPlan ? "3. Attributes / Qualities (Phẩm chất): " : "3. Phẩm chất: ", bold: true, font, size: baseSize }),
+            new TextRun({ text: qualComps.join(" "), font, size: baseSize }),
           ],
         })
       );
@@ -2637,7 +2839,7 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
             new Paragraph({
               spacing: { after: 30 },
               children: [
-                new TextRun({ text: "4. Tích hợp giáo dục: ", bold: true, color: "047857", font, size: baseSize }),
+                new TextRun({ text: isEnglishPlan ? "4. Integrated Cross-curricular Content (Nội dung tích hợp): " : "4. Tích hợp giáo dục: ", bold: true, color: "047857", font, size: baseSize }),
                 new TextRun({ text: intLines.join("; "), italics: true, color: "065F46", font, size: baseSize }),
               ],
             })
@@ -2649,14 +2851,14 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
       docChildren.push(
         new Paragraph({
           spacing: { before: 40, after: 20 },
-          children: [new TextRun({ text: "II. ĐỒ DÙNG DẠY HỌC", bold: true, font, size: baseSize })],
+          children: [new TextRun({ text: isEnglishPlan ? "II. TEACHING AIDS & EQUIPMENT (ĐỒ DÙNG DẠY HỌC)" : "II. ĐỒ DÙNG DẠY HỌC", bold: true, font, size: baseSize })],
         })
       );
       docChildren.push(
         new Paragraph({
           spacing: { after: 20 },
           children: [
-            new TextRun({ text: "- Giáo viên: ", bold: true, font, size: baseSize }),
+            new TextRun({ text: isEnglishPlan ? "- Teacher (Giáo viên): " : "- Giáo viên: ", bold: true, font, size: baseSize }),
             new TextRun({ text: plan.materials.teacher.join("; "), font, size: baseSize }),
           ],
         })
@@ -2665,7 +2867,7 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
         new Paragraph({
           spacing: { after: 30 },
           children: [
-            new TextRun({ text: "- Học sinh: ", bold: true, font, size: baseSize }),
+            new TextRun({ text: isEnglishPlan ? "- Students (Học sinh): " : "- Học sinh: ", bold: true, font, size: baseSize }),
             new TextRun({ text: plan.materials.student.join("; "), font, size: baseSize }),
           ],
         })
@@ -2758,13 +2960,13 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
         }),
       ];
 
-      plan.activities.forEach((act) => {
+      for (const act of plan.activities) {
         const teacherParagraphs: Paragraph[] = [
           new Paragraph({
             spacing: { after: 30 },
             children: [new TextRun({ text: act.name, bold: true, color: "1E40AF", font, size: baseSize })],
           }),
-          ...createActivityCellParagraphs(act.teacherActivity, font, baseSize, "- Cách tiến hành:")
+          ...(await createActivityCellParagraphsWithIllustrations(act.teacherActivity, font, baseSize, "- Cách tiến hành:", act.illustrations))
         ];
 
         const studentParagraphs: Paragraph[] = [
@@ -2785,7 +2987,7 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
             ],
           })
         );
-      });
+      }
 
       docChildren.push(new Table({ width: { size: tableWidth, type: WidthType.DXA }, rows: activityRows }));
 
@@ -2799,8 +3001,8 @@ export async function buildWeeklyKHBDWithLBGFirstPageDocxBlob(
           ],
         })
       );
-    });
-  });
+    }
+  }
 
   const doc = new Document({
     sections: [

@@ -71,6 +71,18 @@ ${subject.toLowerCase().includes("âm nhạc") || subject.toLowerCase().includes
   + Cột học sinh ("studentActivity"): Chi tiết hành động của HS (tư thế ngồi/đứng, lấy hơi cơ hoành, mở khẩu hình chữ O/A luyện thanh, đọc lời ca to rõ, tập hát từng câu theo đàn, cầm thanh phách đúng cách và gõ nhịp nhàng, tham gia hòa tấu bộ gõ, tự tin biểu diễn trên sân khấu lớp, nhận xét tiết mục bạn).
 ` : ""}
 
+* YÊU CẦU TỰ ĐỘNG GỢI Ý TRANH MINH HỌA SGK (VISUAL ILLUSTRATION PLACEHOLDERS):
+Đối với các hoạt động có quan sát tranh, xem tranh SGK, hình ảnh trực quan (đặc biệt Tiếng Việt, Toán, Đạo đức, TNXH, GDTC, ATGT):
+Tự động gợi ý danh sách mô tả tranh SGK cần thiết trong mảng "illustrations" của hoạt động đó:
+[
+  {
+    "id": "illus-1",
+    "caption": "Tranh SGK: [Tiêu đề tranh ngắn gọn]",
+    "description": "[Mô tả chi tiết nội dung tranh SGK: bối cảnh, nhân vật, hành động, sự vật...]",
+    "category": "sgk"
+  }
+]
+
 Hãy trả về định dạng JSON thuần túy theo cấu trúc:
 {
   "subject": "${subject}",
@@ -96,25 +108,36 @@ Hãy trả về định dạng JSON thuần túy theo cấu trúc:
       "name": "1. Khởi động",
       "objective": "...",
       "teacherActivity": "...",
-      "studentActivity": "..."
+      "studentActivity": "...",
+      "illustrations": [
+        {
+          "id": "illus-1",
+          "caption": "Tranh SGK: ...",
+          "description": "...",
+          "category": "sgk"
+        }
+      ]
     },
     {
       "name": "2. Khám phá",
       "objective": "...",
       "teacherActivity": "...",
-      "studentActivity": "..."
+      "studentActivity": "...",
+      "illustrations": []
     },
     {
       "name": "3. Luyện tập / Thực hành",
       "objective": "...",
       "teacherActivity": "...",
-      "studentActivity": "..."
+      "studentActivity": "...",
+      "illustrations": []
     },
     {
       "name": "4. Vận dụng",
       "objective": "...",
       "teacherActivity": "...",
-      "studentActivity": "..."
+      "studentActivity": "...",
+      "illustrations": []
     }
   ],
   "postLessonAdjustment": ""
@@ -130,7 +153,7 @@ Hãy trả về định dạng JSON thuần túy theo cấu trúc:
 
     const text = response.text || "{}";
     const parsed = JSON.parse(text);
-    return res.json({ success: true, data: parsed });
+    return res.json({ success: true, plan: parsed, data: parsed });
   } catch (error: any) {
     console.error("Gemini KHBD Generation Error:", error);
     return res.status(500).json({ success: false, error: error.message || "Lỗi tạo bài giảng từ AI" });

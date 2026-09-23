@@ -1,4 +1,9 @@
 import { Grade, LessonActivity } from "../types";
+import {
+  getOfficialEnglishPeriod,
+  getOfficialEnglishPeriodByYear,
+  OfficialEnglishPeriod
+} from "./englishCurriculumData";
 
 export interface EnglishLessonDetail {
   lessonTitle: string;
@@ -9,6 +14,8 @@ export interface EnglishLessonDetail {
   phonicsSound?: string; // Âm ngữ âm trọng tâm
   gameName: string; // Trò chơi củng cố từ vựng
   specificCompetencies: string[];
+  generalCompetencies?: string[];
+  qualities?: string[];
   teacherMaterials: string[];
   studentMaterials: string[];
   integrationNotes: string;
@@ -619,15 +626,58 @@ const GRADE_ENGLISH_MAP: Record<number, EnglishUnitData[]> = {
 
 /**
  * Trả về chi tiết bài học Tiếng Anh đầy đủ với danh sách Các từ vựng (Vocabulary),
- * mẫu câu (Sentence Patterns), ngữ âm (Phonics) và nội dung chi tiết trong 2 cột hoạt động dạy - học.
+ * mẫu câu (Sentence Patterns), ngữ âm (Phonics) và nội dung chi tiết trong 2 cột hoạt động dạy - học
+ * chuẩn theo Phân phối chương trình mới và mẫu KHBD Công văn 2345/BGDĐT-GDTH.
  */
 export function getDetailedEnglishLesson(
-  grade: Grade,
+  grade: Grade | number,
   week: number,
   customLessonTitle?: string,
-  periodInWeek: number = 1
+  periodInWeek: number = 1,
+  periodInYear?: number
 ): EnglishLessonDetail {
-  const units = GRADE_ENGLISH_MAP[grade] || GRADE_3_ENGLISH_UNITS;
+  const gNum = Number(grade);
+
+  // 1. Kiểm tra dữ liệu Phân phối chương trình chính thức cho Lớp 3, 4, 5 (Global Success)
+  if (gNum >= 3 && gNum <= 5) {
+    const official = (periodInYear !== undefined && periodInYear > 0)
+      ? getOfficialEnglishPeriodByYear(gNum, periodInYear)
+      : getOfficialEnglishPeriod(gNum, week, periodInWeek);
+
+    if (official) {
+      const rawWords = official.vocabulary.map((v) => v.split(" ")[0].trim());
+      const pYear = official.periodInYear;
+      const displayTitle = customLessonTitle || official.fullLessonTitle;
+
+      return {
+        lessonTitle: displayTitle,
+        unitName: official.unitTitle,
+        vocabulary: official.vocabulary,
+        rawWords,
+        sentencePatterns: official.sentencePatterns,
+        phonicsSound: `Global Success Tiếng Anh ${gNum} (Tiết ${pYear})`,
+        gameName: `Trò chơi củng cố Tiếng Anh - Tiết ${pYear}`,
+        specificCompetencies: official.objectives.specificCompetencies || official.objectives.competences,
+        generalCompetencies: official.objectives.generalCompetencies || [
+          "Self-control and independent learning: Actively practice pronunciation, revise vocabulary, and complete learning tasks independently on hoclieu.vn.",
+          "Communication and collaboration: Confidently interact with peers and teacher in pairs and group activities to accomplish communicative tasks.",
+          "Problem-solving and creativity: Apply learned vocabulary and sentence structures flexibly in authentic communicative contexts and interactive games."
+        ],
+        qualities: official.objectives.attributes || [
+          "Hard-working (Chăm chỉ): Diligently engage in classroom activities, chants, songs, and interactive language games.",
+          "Responsibility (Trách nhiệm): Follow classroom rules, handle learning materials and books carefully, and cooperate responsibly with peers.",
+          "Kindness & Respect (Nhân ái): Exhibit polite communication, friendliness, and mutual respect towards classmates and teachers.",
+          "Patriotism & Cultural awareness (Yêu nước): Demonstrate pride in Vietnamese culture while expanding horizons through learning the English language."
+        ],
+        teacherMaterials: official.materials.teacher,
+        studentMaterials: official.materials.student,
+        integrationNotes: official.adjustments || `Tiết ${pYear} - Phân phối chương trình GDPT 2018 (Tiếng Anh ${gNum} Global Success)`,
+        activities: official.activities
+      };
+    }
+  }
+
+  const units = GRADE_ENGLISH_MAP[gNum] || GRADE_3_ENGLISH_UNITS;
   
   // Try matching unit by title if provided
   let matchedUnit: EnglishUnitData | undefined;

@@ -560,11 +560,11 @@ export function getATGTGrade5LessonInfo(week: number): {
   studentMaterials: string[];
   activities: LessonActivity[];
 } {
-  const safeWeek = Math.max(3, week);
-  const weekDiff = safeWeek - 3; // 0 for week 3, 1 for week 4, 2 for week 5...
+  const safeWeek = Math.max(1, week);
+  const weekDiff = safeWeek - 1; // 0 for week 1, 1 for week 2, 2 for week 3...
   
-  // 5 bài dạy tuần tự trong 10 tuần (tuần 3 đến tuần 12), sau đó lặp lại chu kỳ ôn tập củng cố
-  const rawLessonIndex = Math.floor(weekDiff / 2) % 5 + 1; // 1 to 5
+  // 5 bài dạy tuần tự (mỗi bài 2 tiết trong 2 tuần), sau đó lặp lại chu kỳ nâng cao & thực hành
+  const rawLessonIndex = (Math.floor(weekDiff / 2) % 5) + 1; // 1 to 5
   const lessonNumber = Math.min(5, Math.max(1, rawLessonIndex));
   const part = ((weekDiff % 2) + 1) as 1 | 2;
   const curriculumPeriod = weekDiff + 1; // 1, 2, 3...
